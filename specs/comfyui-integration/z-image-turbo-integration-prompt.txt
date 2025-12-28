@@ -1,0 +1,1 @@
+@docs\technical\comfyui\image-to-image-with-z-image-turbo.json When we click on the generate images button, we want to call an API on Comfy UI that's running locally on our machine on ComfyUI runs locally on `127.0.0.1:8000`.. I've attached the workflow that we need to call for Z Image Turbo. So extend our app to use this Comfy UI workflow instead,

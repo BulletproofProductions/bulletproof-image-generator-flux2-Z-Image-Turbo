@@ -1,0 +1,356 @@
+"use client";
+
+import { Wand2, Shuffle } from "lucide-react";
+import { GenerationProgress } from "@/components/generate/generation-progress";
+import { LoadPresetDropdown } from "@/components/presets/load-preset-dropdown";
+import { SavePresetModal } from "@/components/presets/save-preset-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import type { GenerationSettings, Preset, PresetConfig, WorkflowType } from "@/lib/types/generation";
+
+interface ProgressState {
+  step: number;
+  totalSteps: number;
+  percentage: number;
+  status?: string;
+  currentImageIndex?: number;
+  totalImages?: number;
+  isStalled?: boolean;
+  error?: string | null;
+}
+
+interface PreviewPanelProps {
+  assembledPrompt: string;
+  settings: GenerationSettings;
+  onSettingsChange: (settings: Partial<GenerationSettings>) => void;
+  onWorkflowChange: (workflow: WorkflowType) => void;
+  onGenerate: () => void;
+  isGenerating: boolean;
+  hasReferenceImage: boolean; // Whether any subject has an avatar selected
+  // Progress tracking
+  currentPromptId: string | null;
+  currentImageIndex: number;
+  totalImages: number;
+  progress: ProgressState | null;
+  onProgressComplete?: () => void;
+  onProgressError?: (error: string) => void;
+  // Preset props
+  currentConfig: PresetConfig;
+  presets: Preset[];
+  presetsLoading: boolean;
+  onSavePreset: (name: string, config: PresetConfig) => Promise<boolean>;
+  onLoadPreset: (preset: Preset) => void;
+  onDeletePreset: (id: string) => Promise<boolean>;
+}
+
+export function PreviewPanel({
+  assembledPrompt,
+  settings,
+  onSettingsChange,
+  onWorkflowChange,
+  onGenerate,
+  isGenerating,
+  hasReferenceImage,
+  progress,
+  currentConfig,
+  presets,
+  presetsLoading,
+  onSavePreset,
+  onLoadPreset,
+  onDeletePreset,
+}: PreviewPanelProps) {
+  const workflow = settings.workflow || "flux2";
+  const isZImageTurbo = workflow === "z-image-turbo";
+  
+  // Disable generate button when Z Image Turbo selected without reference image
+  const isGenerateDisabled = isGenerating || !assembledPrompt || (isZImageTurbo && !hasReferenceImage);
+  
+  const handleRandomizeSeed = () => {
+    onSettingsChange({ seed: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) });
+  };
+
+  const handleSeedChange = (value: string) => {
+    if (value === "") {
+      onSettingsChange({ seed: undefined });
+    } else {
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 0) {
+        onSettingsChange({ seed: numValue });
+      }
+    }
+  };
+  return (
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="font-semibold text-lg">Preview & Generate</h2>
+            <p className="text-sm text-muted-foreground">
+              Review your prompt and generate images
+            </p>
+          </div>
+        </div>
+        {/* Preset Actions */}
+        <div className="flex items-center gap-2 mt-3">
+          <LoadPresetDropdown
+            presets={presets}
+            onLoad={onLoadPreset}
+            onDelete={onDeletePreset}
+            isLoading={presetsLoading}
+            disabled={isGenerating}
+          />
+          <SavePresetModal
+            config={currentConfig}
+            onSave={onSavePreset}
+            disabled={isGenerating || !assembledPrompt}
+          />
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-6">
+          {/* Prompt Preview */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Generated Prompt</Label>
+            <div className="p-4 bg-muted/50 rounded-lg min-h-[100px]">
+              {assembledPrompt ? (
+                <p className="text-sm whitespace-pre-wrap">{assembledPrompt}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Your prompt will appear here as you build it...
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Settings */}
+          <div className="space-y-4">
+            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+              Generation Settings
+            </h3>
+
+            {/* Workflow Selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Workflow</Label>
+              <Select
+                value={workflow}
+                onValueChange={(value) => onWorkflowChange(value as WorkflowType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select workflow" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flux2">Flux 2 (Text-to-Image)</SelectItem>
+                  <SelectItem value="z-image-turbo">Z Image Turbo (Image-to-Image)</SelectItem>
+                </SelectContent>
+              </Select>
+              {isZImageTurbo && !hasReferenceImage && (
+                <p className="text-xs text-destructive">
+                  ⚠️ Input image required for Z Image Turbo
+                </p>
+              )}
+            </div>
+
+            {/* Number of Images */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Number of Images</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {([1, 2, 3, 4] as const).map((num) => (
+                  <Button
+                    key={num}
+                    variant={settings.imageCount === num ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onSettingsChange({ imageCount: num })}
+                  >
+                    {num}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resolution - Only for Flux 2 */}
+            {!isZImageTurbo && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Resolution</Label>
+                <Select
+                  value={settings.resolution}
+                  onValueChange={(value) =>
+                    onSettingsChange({ resolution: value as GenerationSettings["resolution"] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select resolution" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1K">1K (1024px)</SelectItem>
+                    <SelectItem value="2K">2K (2048px)</SelectItem>
+                    <SelectItem value="4K">4K (4096px)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Aspect Ratio - Only for Flux 2 */}
+            {!isZImageTurbo && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Aspect Ratio</Label>
+                <Select
+                  value={settings.aspectRatio}
+                  onValueChange={(value) =>
+                    onSettingsChange({ aspectRatio: value as GenerationSettings["aspectRatio"] })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select aspect ratio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                    <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                    <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
+                    <SelectItem value="4:3">4:3 (Standard)</SelectItem>
+                    <SelectItem value="3:4">3:4 (Portrait Standard)</SelectItem>
+                    <SelectItem value="21:9">21:9 (Ultrawide)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <Separator />
+
+            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+              AI Image Generation Settings
+            </h3>
+
+            {/* Steps */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label className="text-sm font-medium">Steps</Label>
+                <span className="text-sm text-muted-foreground">
+                  {settings.steps || (isZImageTurbo ? 9 : 20)}
+                </span>
+              </div>
+              <Slider
+                value={[settings.steps || (isZImageTurbo ? 9 : 20)]}
+                onValueChange={(value) => onSettingsChange({ steps: value[0] })}
+                min={1}
+                max={isZImageTurbo ? 20 : 50}
+                step={1}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                More steps = better quality but slower
+              </p>
+            </div>
+
+            {/* Guidance/CFG */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label className="text-sm font-medium">
+                  {isZImageTurbo ? "CFG" : "Guidance"}
+                </Label>
+                <span className="text-sm text-muted-foreground">
+                  {settings.guidance || (isZImageTurbo ? 1 : 4)}
+                </span>
+              </div>
+              <Slider
+                value={[settings.guidance || (isZImageTurbo ? 1 : 4)]}
+                onValueChange={(value) => onSettingsChange({ guidance: value[0] })}
+                min={1}
+                max={isZImageTurbo ? 5 : 10}
+                step={0.5}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Higher = follows prompt more closely
+              </p>
+            </div>
+
+            {/* Denoise - Only for Z Image Turbo */}
+            {isZImageTurbo && (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-sm font-medium">Denoise Strength</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {settings.denoise ?? 0.4}
+                  </span>
+                </div>
+                <Slider
+                  value={[settings.denoise ?? 0.4]}
+                  onValueChange={(value) => onSettingsChange({ denoise: value[0] })}
+                  min={0.1}
+                  max={1.0}
+                  step={0.05}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Higher = more transformation from original
+                </p>
+              </div>
+            )}
+
+            {/* Seed */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Seed</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Random"
+                  value={settings.seed ?? ""}
+                  onChange={(e) => handleSeedChange(e.target.value)}
+                  className="flex-1"
+                  min={0}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRandomizeSeed}
+                  title="Randomize seed"
+                >
+                  <Shuffle className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Same seed = reproducible results
+              </p>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+
+      {/* Generate Button and Progress */}
+      <div className="p-4 border-t space-y-4">
+        {isGenerating && progress && (
+          <GenerationProgress
+            progress={progress}
+            isGenerating={isGenerating}
+          />
+        )}
+
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={onGenerate}
+          disabled={isGenerateDisabled}
+          title={isZImageTurbo && !hasReferenceImage ? "Input image required for Z Image Turbo" : undefined}
+        >
+          <Wand2 className="h-5 w-5 mr-2" />
+          {isGenerating ? "Generating..." : "Generate Images"}
+        </Button>
+      </div>
+    </div>
+  );
+}
