@@ -62,6 +62,21 @@ export interface ZImageTurboWorkflowOptions {
   shift?: number | undefined; // ModelSamplingAuraFlow shift, default 3
 }
 
+export interface BulletproofBackgroundWorkflowOptions {
+  prompt: string; // New background description - Node 12 (CLIPTextEncode)
+  inputImageFilename: string; // Required - Node 41 (LoadImage)
+  steps?: number | undefined; // 1-20, default 9 - Node 16 (KSampler)
+  cfg?: number | undefined; // 1-5, default 1 - Node 16 (KSampler)
+  denoise?: number | undefined; // 0.1-1.0, default 0.9 - Node 16 (KSampler)
+  seed?: number | undefined; // Node 16 (KSampler)
+  shift?: number | undefined; // 1-10, default 3 - Node 53 (ModelSamplingAuraFlow)
+  detectionConfidence?: number | undefined; // 0.1-1.0, default 0.2 - Node 66 (SAM3Grounding)
+  subjectToDetect?: string | undefined; // Text prompt for segmentation, default "person" - Node 66 (SAM3Grounding)
+  maskBlendPixels?: number | undefined; // 0-32, default 8 - Node 78 (InpaintCropImproved)
+  outputWidth?: number | undefined; // Output width, default 1024 - Node 78
+  outputHeight?: number | undefined; // Output height, default 1024 - Node 78
+}
+
 // ==========================================
 // Resolution Mapping
 // ==========================================
@@ -731,6 +746,214 @@ export class ComfyUIClient {
         },
         class_type: "ModelSamplingAuraFlow",
         _meta: { title: "ModelSamplingAuraFlow" },
+      },
+    };
+
+    return workflow;
+  }
+
+  /**
+   * Build a Bulletproof Background workflow for inpainting/background replacement
+   * Based on workflow: docs/technical/comfyui/inpainting-with-z-image-turbo.json
+   * Uses SAM3 for automatic person segmentation and Z Image Turbo for inpainting
+   * Excludes preview/debug nodes (81, 82, 111, 118) - not needed for API usage
+   */
+  buildBulletproofBackgroundWorkflow(options: BulletproofBackgroundWorkflowOptions): ComfyUIWorkflow {
+    const {
+      prompt,
+      inputImageFilename,
+      steps = 9,
+      cfg = 1,
+      denoise = 0.9,
+      seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER),
+      shift = 3,
+      detectionConfidence = 0.2,
+      subjectToDetect = "person",
+      maskBlendPixels = 8,
+      outputWidth = 1024,
+      outputHeight = 1024,
+    } = options;
+
+    const workflow: ComfyUIWorkflow = {
+      // Node 10: InpaintModelConditioning - Set up inpaint conditioning
+      "10": {
+        inputs: {
+          noise_mask: true,
+          positive: ["12", 0],
+          negative: ["52", 0],
+          vae: ["56", 0],
+          pixels: ["78", 1],
+          mask: ["78", 2],
+        },
+        class_type: "InpaintModelConditioning",
+        _meta: { title: "InpaintModelConditioning" },
+      },
+      // Node 12: CLIPTextEncode - Background prompt
+      "12": {
+        inputs: {
+          text: prompt,
+          clip: ["54", 0],
+        },
+        class_type: "CLIPTextEncode",
+        _meta: { title: "CLIP Text Encode (Prompt)" },
+      },
+      // Node 16: KSampler - Main sampler
+      "16": {
+        inputs: {
+          seed: seed,
+          steps: steps,
+          cfg: cfg,
+          sampler_name: "res_multistep",
+          scheduler: "simple",
+          denoise: denoise,
+          model: ["17", 0],
+          positive: ["10", 0],
+          negative: ["10", 1],
+          latent_image: ["10", 2],
+        },
+        class_type: "KSampler",
+        _meta: { title: "KSampler" },
+      },
+      // Node 17: DifferentialDiffusion - Apply differential diffusion
+      "17": {
+        inputs: {
+          strength: 1,
+          model: ["53", 0],
+        },
+        class_type: "DifferentialDiffusion",
+        _meta: { title: "Differential Diffusion" },
+      },
+      // Node 25: VAEDecode - Decode latent to image
+      "25": {
+        inputs: {
+          samples: ["16", 0],
+          vae: ["56", 0],
+        },
+        class_type: "VAEDecode",
+        _meta: { title: "VAE Decode" },
+      },
+      // Node 41: LoadImage - Input image (required)
+      "41": {
+        inputs: {
+          image: inputImageFilename,
+        },
+        class_type: "LoadImage",
+        _meta: { title: "Load Image" },
+      },
+      // Node 52: ConditioningZeroOut - Zero out negative conditioning
+      "52": {
+        inputs: {
+          conditioning: ["12", 0],
+        },
+        class_type: "ConditioningZeroOut",
+        _meta: { title: "ConditioningZeroOut" },
+      },
+      // Node 53: ModelSamplingAuraFlow - Apply model sampling
+      "53": {
+        inputs: {
+          shift: shift,
+          model: ["55", 0],
+        },
+        class_type: "ModelSamplingAuraFlow",
+        _meta: { title: "ModelSamplingAuraFlow" },
+      },
+      // Node 54: CLIPLoader - Load CLIP model
+      "54": {
+        inputs: {
+          clip_name: "qwen_3_4b.safetensors",
+          type: "lumina2",
+          device: "default",
+        },
+        class_type: "CLIPLoader",
+        _meta: { title: "Load CLIP" },
+      },
+      // Node 55: UNETLoader - Load Z Image Turbo model (bf16 version for inpainting)
+      "55": {
+        inputs: {
+          unet_name: "z_image_turbo_bf16.safetensors",
+          weight_dtype: "default",
+        },
+        class_type: "UNETLoader",
+        _meta: { title: "Load Diffusion Model" },
+      },
+      // Node 56: VAELoader - Load VAE
+      "56": {
+        inputs: {
+          vae_name: "ae.safetensors",
+        },
+        class_type: "VAELoader",
+        _meta: { title: "Load VAE" },
+      },
+      // Node 66: SAM3Grounding - Segment subject using text prompt
+      "66": {
+        inputs: {
+          confidence_threshold: detectionConfidence,
+          text_prompt: subjectToDetect,
+          max_detections: -1,
+          offload_model: false,
+          sam3_model: ["67", 0],
+          image: ["41", 0],
+        },
+        class_type: "SAM3Grounding",
+        _meta: { title: "SAM3 Text Segmentation" },
+      },
+      // Node 67: LoadSAM3Model - Load SAM3 model
+      "67": {
+        inputs: {
+          model_path: "models/sam3/sam3.pt",
+        },
+        class_type: "LoadSAM3Model",
+        _meta: { title: "(down)Load SAM3 Model" },
+      },
+      // Node 78: InpaintCropImproved - Crop and prepare mask for inpainting
+      "78": {
+        inputs: {
+          downscale_algorithm: "bilinear",
+          upscale_algorithm: "bicubic",
+          preresize: false,
+          preresize_mode: "ensure minimum resolution",
+          preresize_min_width: 1024,
+          preresize_min_height: 1024,
+          preresize_max_width: 16384,
+          preresize_max_height: 16384,
+          mask_fill_holes: false,
+          mask_expand_pixels: 0,
+          mask_invert: true, // Invert mask to paint background, not subject
+          mask_blend_pixels: maskBlendPixels,
+          mask_hipass_filter: 0.1,
+          extend_for_outpainting: false,
+          extend_up_factor: 1,
+          extend_down_factor: 1,
+          extend_left_factor: 1,
+          extend_right_factor: 1,
+          context_from_mask_extend_factor: 1.1,
+          output_resize_to_target_size: true,
+          output_target_width: outputWidth,
+          output_target_height: outputHeight,
+          output_padding: "8",
+          image: ["41", 0],
+          mask: ["66", 0],
+        },
+        class_type: "InpaintCropImproved",
+        _meta: { title: "✂️ Inpaint Crop (Improved)" },
+      },
+      // Node 79: InpaintStitchImproved - Stitch inpainted region back
+      "79": {
+        inputs: {
+          stitcher: ["78", 0],
+          inpainted_image: ["25", 0],
+        },
+        class_type: "InpaintStitchImproved",
+        _meta: { title: "✂️ Inpaint Stitch (Improved)" },
+      },
+      // Node 80: SaveImage - Save final output
+      "80": {
+        inputs: {
+          filename_prefix: "BulletproofBackground",
+          images: ["79", 0],
+        },
+        class_type: "SaveImage",
+        _meta: { title: "Save Image" },
       },
     };
 

@@ -124,6 +124,23 @@ export function usePromptBuilder(): UsePromptBuilderReturn {
           denoise: 0.4,
           largestSize: 1024,
           shift: 3,
+          // Clear Bulletproof Background specific settings
+          detectionConfidence: undefined,
+          subjectToDetect: undefined,
+        };
+      } else if (workflow === "bulletproof-background") {
+        // Bulletproof Background defaults
+        return {
+          ...prev,
+          workflow,
+          steps: 9,
+          guidance: 1,
+          denoise: 0.9,
+          shift: 3,
+          detectionConfidence: 0.2,
+          subjectToDetect: "person",
+          // Clear Z Image Turbo specific settings
+          largestSize: undefined,
         };
       } else {
         // Flux 2 defaults
@@ -135,6 +152,9 @@ export function usePromptBuilder(): UsePromptBuilderReturn {
           denoise: undefined,
           largestSize: undefined,
           shift: undefined,
+          // Clear Bulletproof Background specific settings
+          detectionConfidence: undefined,
+          subjectToDetect: undefined,
         };
       }
     });

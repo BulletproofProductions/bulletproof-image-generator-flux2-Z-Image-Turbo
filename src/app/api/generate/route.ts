@@ -97,10 +97,10 @@ export async function POST(request: Request) {
 
     // Validate workflow type
     const workflow = settings.workflow || "flux2";
-    const validWorkflows: WorkflowType[] = ["flux2", "z-image-turbo"];
+    const validWorkflows: WorkflowType[] = ["flux2", "z-image-turbo", "bulletproof-background"];
     if (!validWorkflows.includes(workflow)) {
       return NextResponse.json(
-        { error: "Invalid workflow. Must be 'flux2' or 'z-image-turbo'" },
+        { error: "Invalid workflow. Must be 'flux2', 'z-image-turbo', or 'bulletproof-background'" },
         { status: 400 }
       );
     }
@@ -121,10 +121,34 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validate Bulletproof Background specific parameters
+    if (workflow === "bulletproof-background") {
+      if (settings.denoise !== undefined && (settings.denoise < 0.1 || settings.denoise > 1.0)) {
+        return NextResponse.json(
+          { error: "Denoise must be between 0.1 and 1.0" },
+          { status: 400 }
+        );
+      }
+      if (settings.detectionConfidence !== undefined && (settings.detectionConfidence < 0.1 || settings.detectionConfidence > 1.0)) {
+        return NextResponse.json(
+          { error: "Detection confidence must be between 0.1 and 1.0" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate Z Image Turbo requires an input image
     if (workflow === "z-image-turbo" && referenceImages.length === 0) {
       return NextResponse.json(
         { error: "Input image required for Z Image Turbo" },
+        { status: 400 }
+      );
+    }
+
+    // Validate Bulletproof Background requires an input image
+    if (workflow === "bulletproof-background" && referenceImages.length === 0) {
+      return NextResponse.json(
+        { error: "Input image required for Bulletproof Background" },
         { status: 400 }
       );
     }
@@ -233,6 +257,22 @@ export async function POST(request: Request) {
                 seed: settings.seed !== undefined ? settings.seed + i : undefined,
                 largestSize: settings.largestSize ?? 1024,
                 shift: settings.shift ?? 3,
+              });
+            } else if (workflow === "bulletproof-background") {
+              // Bulletproof Background requires input image - use reference image
+              if (!referenceImageFilename) {
+                throw new Error("Input image required for Bulletproof Background workflow");
+              }
+              comfyWorkflow = comfyui.buildBulletproofBackgroundWorkflow({
+                prompt: prompt.trim(),
+                inputImageFilename: referenceImageFilename,
+                steps: settings.steps ?? 9,
+                cfg: settings.guidance ?? 1,
+                denoise: settings.denoise ?? 0.9,
+                seed: settings.seed !== undefined ? settings.seed + i : undefined,
+                shift: settings.shift ?? 3,
+                detectionConfidence: settings.detectionConfidence ?? 0.2,
+                subjectToDetect: settings.subjectToDetect ?? "person",
               });
             } else {
               // Default: Flux 2 workflow

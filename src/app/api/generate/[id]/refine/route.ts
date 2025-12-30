@@ -155,6 +155,19 @@ export async function POST(request: Request, { params }: RouteParams) {
             largestSize: settings.largestSize ?? 1024,
             shift: settings.shift ?? 3,
           });
+        } else if (workflow === "bulletproof-background") {
+          // Bulletproof Background uses previous output as input image
+          comfyWorkflow = comfyui.buildBulletproofBackgroundWorkflow({
+            prompt: refinementPrompt,
+            inputImageFilename: uploadResult.name,
+            steps: settings.steps ?? 9,
+            cfg: settings.guidance ?? 1,
+            denoise: settings.denoise ?? 0.9,
+            seed: settings.seed !== undefined ? settings.seed + i : undefined,
+            shift: settings.shift ?? 3,
+            detectionConfidence: settings.detectionConfidence ?? 0.2,
+            subjectToDetect: settings.subjectToDetect ?? "person",
+          });
         } else {
           // Default: Flux 2 workflow with reference image
           comfyWorkflow = comfyui.buildFlux2Workflow({

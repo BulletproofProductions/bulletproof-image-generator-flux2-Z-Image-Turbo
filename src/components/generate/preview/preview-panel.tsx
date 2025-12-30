@@ -72,9 +72,11 @@ export function PreviewPanel({
 }: PreviewPanelProps) {
   const workflow = settings.workflow || "flux2";
   const isZImageTurbo = workflow === "z-image-turbo";
+  const isBulletproofBackground = workflow === "bulletproof-background";
+  const requiresInputImage = isZImageTurbo || isBulletproofBackground;
   
-  // Disable generate button when Z Image Turbo selected without reference image
-  const isGenerateDisabled = isGenerating || !assembledPrompt || (isZImageTurbo && !hasReferenceImage);
+  // Disable generate button when workflow requires input image but none provided
+  const isGenerateDisabled = isGenerating || !assembledPrompt || (requiresInputImage && !hasReferenceImage);
   
   const handleRandomizeSeed = () => {
     onSettingsChange({ seed: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) });
@@ -155,11 +157,17 @@ export function PreviewPanel({
                 <SelectContent>
                   <SelectItem value="flux2">Flux 2 (Text-to-Image)</SelectItem>
                   <SelectItem value="z-image-turbo">Z Image Turbo (Image-to-Image)</SelectItem>
+                  <SelectItem value="bulletproof-background">Bulletproof Background (Inpainting)</SelectItem>
                 </SelectContent>
               </Select>
               {isZImageTurbo && !hasReferenceImage && (
                 <p className="text-xs text-destructive">
                   ⚠️ Input image required for Z Image Turbo
+                </p>
+              )}
+              {isBulletproofBackground && !hasReferenceImage && (
+                <p className="text-xs text-destructive">
+                  ⚠️ Input image required for Bulletproof Background
                 </p>
               )}
             </div>
@@ -182,7 +190,7 @@ export function PreviewPanel({
             </div>
 
             {/* Resolution - Only for Flux 2 */}
-            {!isZImageTurbo && (
+            {!isZImageTurbo && !isBulletproofBackground && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Resolution</Label>
                 <Select
@@ -204,7 +212,7 @@ export function PreviewPanel({
             )}
 
             {/* Aspect Ratio - Only for Flux 2 */}
-            {!isZImageTurbo && (
+            {!isZImageTurbo && !isBulletproofBackground && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Aspect Ratio</Label>
                 <Select
@@ -239,14 +247,14 @@ export function PreviewPanel({
               <div className="flex justify-between">
                 <Label className="text-sm font-medium">Steps</Label>
                 <span className="text-sm text-muted-foreground">
-                  {settings.steps || (isZImageTurbo ? 9 : 20)}
+                  {settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)}
                 </span>
               </div>
               <Slider
-                value={[settings.steps || (isZImageTurbo ? 9 : 20)]}
+                value={[settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)]}
                 onValueChange={(value) => onSettingsChange({ steps: value[0] })}
                 min={1}
-                max={isZImageTurbo ? 20 : 50}
+                max={isZImageTurbo || isBulletproofBackground ? 20 : 50}
                 step={1}
                 className="w-full"
               />
@@ -259,17 +267,17 @@ export function PreviewPanel({
             <div className="space-y-2">
               <div className="flex justify-between">
                 <Label className="text-sm font-medium">
-                  {isZImageTurbo ? "CFG" : "Guidance"}
+                  {isZImageTurbo || isBulletproofBackground ? "CFG" : "Guidance"}
                 </Label>
                 <span className="text-sm text-muted-foreground">
-                  {settings.guidance || (isZImageTurbo ? 1 : 4)}
+                  {settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)}
                 </span>
               </div>
               <Slider
-                value={[settings.guidance || (isZImageTurbo ? 1 : 4)]}
+                value={[settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)]}
                 onValueChange={(value) => onSettingsChange({ guidance: value[0] })}
                 min={1}
-                max={isZImageTurbo ? 5 : 10}
+                max={isZImageTurbo || isBulletproofBackground ? 5 : 10}
                 step={0.5}
                 className="w-full"
               />
@@ -278,17 +286,17 @@ export function PreviewPanel({
               </p>
             </div>
 
-            {/* Denoise - Only for Z Image Turbo */}
-            {isZImageTurbo && (
+            {/* Denoise - For Z Image Turbo and Bulletproof Background */}
+            {(isZImageTurbo || isBulletproofBackground) && (
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label className="text-sm font-medium">Denoise Strength</Label>
                   <span className="text-sm text-muted-foreground">
-                    {settings.denoise ?? 0.4}
+                    {settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)}
                   </span>
                 </div>
                 <Slider
-                  value={[settings.denoise ?? 0.4]}
+                  value={[settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)]}
                   onValueChange={(value) => onSettingsChange({ denoise: value[0] })}
                   min={0.1}
                   max={1.0}
@@ -296,7 +304,49 @@ export function PreviewPanel({
                   className="w-full"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Higher = more transformation from original
+                  {isBulletproofBackground 
+                    ? "Higher = more background transformation" 
+                    : "Higher = more transformation from original"}
+                </p>
+              </div>
+            )}
+
+            {/* Detection Confidence - Only for Bulletproof Background */}
+            {isBulletproofBackground && (
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-sm font-medium">Detection Confidence</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {settings.detectionConfidence ?? 0.2}
+                  </span>
+                </div>
+                <Slider
+                  value={[settings.detectionConfidence ?? 0.2]}
+                  onValueChange={(value) => onSettingsChange({ detectionConfidence: value[0] })}
+                  min={0.1}
+                  max={1.0}
+                  step={0.1}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Lower = detect subjects more easily
+                </p>
+              </div>
+            )}
+
+            {/* Subject to Detect - Only for Bulletproof Background */}
+            {isBulletproofBackground && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Subject to Detect</Label>
+                <Input
+                  type="text"
+                  placeholder="person"
+                  value={settings.subjectToDetect ?? "person"}
+                  onChange={(e) => onSettingsChange({ subjectToDetect: e.target.value })}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  What to preserve (e.g., &quot;person&quot;, &quot;cat&quot;, &quot;car&quot;)
                 </p>
               </div>
             )}
@@ -345,7 +395,9 @@ export function PreviewPanel({
           size="lg"
           onClick={onGenerate}
           disabled={isGenerateDisabled}
-          title={isZImageTurbo && !hasReferenceImage ? "Input image required for Z Image Turbo" : undefined}
+          title={requiresInputImage && !hasReferenceImage 
+            ? `Input image required for ${isBulletproofBackground ? "Bulletproof Background" : "Z Image Turbo"}` 
+            : undefined}
         >
           <Wand2 className="h-5 w-5 mr-2" />
           {isGenerating ? "Generating..." : "Generate Images"}

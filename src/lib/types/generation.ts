@@ -32,19 +32,22 @@ export interface UpdateAvatarInput {
 export type ImageResolution = "1K" | "2K" | "4K";
 export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9";
 export type GenerationStatus = "pending" | "processing" | "completed" | "failed";
-export type WorkflowType = "flux2" | "z-image-turbo";
+export type WorkflowType = "flux2" | "z-image-turbo" | "bulletproof-background";
 
 export interface GenerationSettings {
   resolution: ImageResolution;
   aspectRatio: AspectRatio;
   imageCount: 1 | 2 | 3 | 4;
-  steps?: number | undefined; // 1-50, default 20 (Flux 2) or 1-20 default 9 (Z Image Turbo)
-  guidance?: number | undefined; // 1-10, default 4 (Flux 2) or 1-5 default 1 (Z Image Turbo)
+  steps?: number | undefined; // 1-50, default 20 (Flux 2) or 1-20 default 9 (Z Image Turbo/Bulletproof Background)
+  guidance?: number | undefined; // 1-10, default 4 (Flux 2) or 1-5 default 1 (Z Image Turbo/Bulletproof Background)
   seed?: number | undefined; // Optional, random if not provided
   workflow?: WorkflowType | undefined; // Default: "flux2"
-  denoise?: number | undefined; // 0.1-1.0, default 0.4 (Z Image Turbo only)
+  denoise?: number | undefined; // 0.1-1.0, default 0.4 (Z Image Turbo) or 0.9 (Bulletproof Background)
   largestSize?: number | undefined; // Max image dimension in pixels, default 1024 (Z Image Turbo only)
-  shift?: number | undefined; // ModelSamplingAuraFlow shift, default 3 (Z Image Turbo only)
+  shift?: number | undefined; // ModelSamplingAuraFlow shift, default 3 (Z Image Turbo/Bulletproof Background)
+  // Bulletproof Background specific settings
+  detectionConfidence?: number | undefined; // 0.1-1.0, default 0.2 (Bulletproof Background only)
+  subjectToDetect?: string | undefined; // Text prompt for SAM3 segmentation, default "person" (Bulletproof Background only)
 }
 
 export interface Generation {
