@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { join } from "path";
 import { eq, asc } from "drizzle-orm";
 import { comfyui, getResolutionDimensions } from "@/lib/comfyui";
 import { db } from "@/lib/db";
 import { generations, generatedImages, generationHistory } from "@/lib/schema";
-import { upload } from "@/lib/storage";
+import { upload, readFromStorage } from "@/lib/storage";
 import type {
   GenerationSettings,
   GenerationWithImages,
@@ -120,11 +121,28 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
 
       // Upload reference image to ComfyUI
-      const imageResponse = await fetch(referenceImage.imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error("Failed to fetch reference image");
+      let imageBuffer: Buffer;
+      try {
+        imageBuffer = await readFromStorage(referenceImage.imageUrl);
+      } catch (err) {
+        // Log full path server-side for debugging
+        const isLocalPath = !referenceImage.imageUrl.startsWith("http");
+        if (isLocalPath) {
+          const fullPath = join(process.cwd(), "public", referenceImage.imageUrl.replace(/^\//, ""));
+          console.error(`[Refine] Reference image not found at: ${fullPath}`);
+        } else {
+          console.error(`[Refine] Failed to fetch reference image from: ${referenceImage.imageUrl}`, err);
+        }
+        // Reset generation status back to completed since refinement failed
+        await db
+          .update(generations)
+          .set({ status: "completed" })
+          .where(eq(generations.id, id));
+        return NextResponse.json(
+          { error: "Reference image not found. The original image may have been deleted." },
+          { status: 404 }
+        );
       }
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
       const uploadResult = await comfyui.uploadImage(
         imageBuffer,
         `ref-${id}-refine-${Date.now()}.png`
