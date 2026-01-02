@@ -121,55 +121,55 @@
   @keyframes pulse-color-shift {
     0% {
       transform: scale(1);
-      color: rgb(168, 85, 247);
+      color: rgb(161, 144, 125);
     }
     8% {
       transform: scale(1.01);
-      color: rgb(220, 38, 38);
+      color: rgb(184, 115, 51);
     }
     17% {
       transform: scale(1.03);
-      color: rgb(234, 179, 8);
+      color: rgb(218, 195, 152);
     }
     25% {
       transform: scale(1.05);
-      color: rgb(180, 83, 9);
+      color: rgb(204, 119, 85);
     }
     33% {
       transform: scale(1.06);
-      color: rgb(34, 197, 94);
+      color: rgb(143, 163, 133);
     }
     42% {
       transform: scale(1.07);
-      color: rgb(59, 130, 246);
+      color: rgb(119, 136, 153);
     }
     50% {
       transform: scale(1.08);
-      color: rgb(236, 72, 153);
+      color: rgb(186, 135, 135);
     }
     58% {
       transform: scale(1.07);
-      color: rgb(168, 85, 247);
+      color: rgb(161, 144, 125);
     }
     67% {
       transform: scale(1.06);
-      color: rgb(220, 38, 38);
+      color: rgb(184, 115, 51);
     }
     75% {
       transform: scale(1.05);
-      color: rgb(234, 179, 8);
+      color: rgb(218, 195, 152);
     }
     83% {
       transform: scale(1.03);
-      color: rgb(180, 83, 9);
+      color: rgb(204, 119, 85);
     }
     92% {
       transform: scale(1.01);
-      color: rgb(34, 197, 94);
+      color: rgb(143, 163, 133);
     }
     100% {
       transform: scale(1);
-      color: rgb(59, 130, 246);
+      color: rgb(119, 136, 153);
     }
   }
 

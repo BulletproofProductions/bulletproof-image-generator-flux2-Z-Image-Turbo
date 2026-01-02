@@ -87,7 +87,7 @@ export function SiteHeader({ isGenerating = false }: SiteHeaderProps) {
               </div>
               <span 
                 className={cn(
-                  "bg-linear-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent hidden sm:inline heading-animatable stagger-animation",
+                  "bg-linear-to-r from-[#a1907d] to-[#8b7a68] bg-clip-text text-transparent hidden sm:inline heading-animatable stagger-animation",
                   isGenerating && "animate-pulse-color-shift"
                 )}
               >
