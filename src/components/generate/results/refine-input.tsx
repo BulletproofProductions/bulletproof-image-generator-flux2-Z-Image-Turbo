@@ -56,7 +56,7 @@ export function RefineInput({ onRefine, isRefining, disabled = false }: RefineIn
           value={instruction}
           onChange={(e) => setInstruction(e.target.value)}
           disabled={isRefining || disabled}
-          className="min-h-[80px] resize-none"
+          className="min-h-20 resize-none"
         />
 
         <div className="flex flex-wrap gap-2">

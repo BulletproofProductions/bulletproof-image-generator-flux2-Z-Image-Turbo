@@ -191,6 +191,22 @@
     animation: logo-spin 2s linear infinite;
   }
 
+  /* Logo pulsate animation during generation */
+  @keyframes logo-pulsate {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
+  }
+
+  .animate-logo-pulsate {
+    animation: logo-pulsate 1.5s ease-in-out infinite;
+  }
+
   /* GPU optimization for animation */
   .heading-animatable {
     will-change: transform, filter;

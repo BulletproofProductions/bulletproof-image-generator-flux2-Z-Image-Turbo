@@ -45,6 +45,22 @@ export function SiteHeader({ isGenerating = false }: SiteHeaderProps) {
             >
               <div
                 className={cn(
+                  "shrink-0",
+                  isGenerating && "animate-logo-pulsate"
+                )}
+                aria-hidden="true"
+              >
+                <Image
+                  src="/BP-AI-Progress.png"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className="h-24 w-auto object-contain"
+                  priority
+                />
+              </div>
+              <div
+                className={cn(
                   "flex items-center justify-center w-16 h-16 rounded-lg shrink-0",
                   isGenerating && "animate-logo-spin"
                 )}
