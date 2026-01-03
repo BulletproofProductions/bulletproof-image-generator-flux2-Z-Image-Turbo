@@ -44,18 +44,64 @@ export function SiteHeader({ isGenerating = false }: SiteHeaderProps) {
               aria-label="Bulletproof Productions - Go to homepage"
             >
               <div
-                className={cn(
-                  "shrink-0",
-                  isGenerating && "animate-logo-pulsate"
-                )}
+                className="shrink-0 relative w-24 h-24"
                 aria-hidden="true"
               >
+                {/* Idle state image - shown when not generating */}
                 <Image
                   src="/BP-AI-Progress.png"
                   alt=""
                   width={96}
                   height={96}
-                  className="h-24 w-auto object-contain"
+                  className={cn(
+                    "h-24 w-auto object-contain transition-opacity duration-500",
+                    isGenerating ? "opacity-0" : "opacity-100"
+                  )}
+                  priority
+                />
+                {/* Crossfade animation images - shown during generation */}
+                <Image
+                  src="/BP-AI-1.jpg"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className={cn(
+                    "h-24 w-auto object-contain crossfade-image",
+                    isGenerating && "animate-crossfade-1"
+                  )}
+                  priority
+                />
+                <Image
+                  src="/BP-AI-2.jpg"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className={cn(
+                    "h-24 w-auto object-contain crossfade-image",
+                    isGenerating && "animate-crossfade-2"
+                  )}
+                  priority
+                />
+                <Image
+                  src="/BP-AI-3.jpg"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className={cn(
+                    "h-24 w-auto object-contain crossfade-image",
+                    isGenerating && "animate-crossfade-3"
+                  )}
+                  priority
+                />
+                <Image
+                  src="/BP-AI-4.jpg"
+                  alt=""
+                  width={96}
+                  height={96}
+                  className={cn(
+                    "h-24 w-auto object-contain crossfade-image",
+                    isGenerating && "animate-crossfade-4"
+                  )}
                   priority
                 />
               </div>

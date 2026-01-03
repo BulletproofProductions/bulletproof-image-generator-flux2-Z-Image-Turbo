@@ -207,6 +207,55 @@
     animation: logo-pulsate 1.5s ease-in-out infinite;
   }
 
+  /* Multi-image crossfade animation during generation */
+  /* 4-second cycle with 1s overlap between images */
+  @keyframes image-crossfade {
+    0% {
+      opacity: 0;
+    }
+    /* Fade in from 0% to 25% (1s) */
+    25% {
+      opacity: 1;
+    }
+    /* Fade out from 25% to 50% (1s overlap with next image) */
+    50% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Base class for crossfade images with GPU optimization */
+  .crossfade-image {
+    position: absolute;
+    inset: 0;
+    will-change: opacity;
+    transform: translateZ(0);
+    opacity: 0;
+  }
+
+  /* Staggered animation classes for 4-image crossfade loop */
+  .animate-crossfade-1 {
+    animation: image-crossfade 8s infinite;
+    animation-delay: 0s;
+  }
+
+  .animate-crossfade-2 {
+    animation: image-crossfade 8s infinite;
+    animation-delay: 2s;
+  }
+
+  .animate-crossfade-3 {
+    animation: image-crossfade 8s infinite;
+    animation-delay: 4s;
+  }
+
+  .animate-crossfade-4 {
+    animation: image-crossfade 8s infinite;
+    animation-delay: 6s;
+  }
+
   /* GPU optimization for animation */
   .heading-animatable {
     will-change: transform, filter;
