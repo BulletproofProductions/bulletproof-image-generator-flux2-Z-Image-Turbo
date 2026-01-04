@@ -1,3 +1,60 @@
+/**
+ * @fileoverview Image Comparison Slider Component
+ * 
+ * An interactive before/after comparison slider for comparing
+ * original and upscaled images. Used by the Bulletproof Upscaler
+ * workflow to visualize enhancement results.
+ * 
+ * ## Features
+ * 
+ * - Drag to reveal original vs upscaled
+ * - Toggle between horizontal and vertical modes
+ * - Keyboard accessible (arrow keys, Home/End, Space)
+ * - Touch-friendly for mobile devices
+ * - Focus state with visible ring
+ * 
+ * ## Keyboard Controls
+ * 
+ * | Key | Action |
+ * |-----|--------|
+ * | ← / ↑ | Move slider left/up (2% step) |
+ * | → / ↓ | Move slider right/down (2% step) |
+ * | Shift + Arrow | Larger step (10%) |
+ * | Home | Move to 0% (show upscaled) |
+ * | End | Move to 100% (show original) |
+ * | Space | Reset to initial position |
+ * 
+ * ## Visual Layout
+ * 
+ * ```
+ * Horizontal Mode:
+ * ┌────────────────│────────────────┐
+ * │    Original    │    Upscaled    │
+ * │    (left)      │    (right)     │
+ * └────────────────┴────────────────┘
+ *                  ↑ drag handle
+ * 
+ * Vertical Mode:
+ * ┌─────────────────────────────────┐
+ * │          Original (top)          │
+ * ├─────────────────────────────────┤ ← drag handle
+ * │         Upscaled (bottom)        │
+ * └─────────────────────────────────┘
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * <ImageComparisonSlider
+ *   originalImageUrl="/uploads/original.png"
+ *   upscaledImageUrl="/uploads/upscaled.png"
+ *   onDownload={(url) => downloadImage(url)}
+ *   initialPosition={50}
+ * />
+ * ```
+ * 
+ * @module components/generate/results/image-comparison-slider
+ */
+
 "use client";
 
 import { useState, useRef, useCallback, type KeyboardEvent } from "react";
@@ -6,13 +63,30 @@ import { Download, ArrowLeftRight, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/**
+ * Props for the ImageComparisonSlider component
+ */
 interface ImageComparisonSliderProps {
+  /** URL of the original (pre-upscale) image */
   originalImageUrl: string;
+  /** URL of the upscaled image */
   upscaledImageUrl: string;
+  /** Callback for download button click */
   onDownload?: (url: string) => void;
+  /** Initial slider position (0-100, default: 50) */
   initialPosition?: number;
 }
 
+/**
+ * Interactive before/after image comparison slider
+ * 
+ * Displays two images (original and upscaled) with a draggable
+ * divider that reveals one or the other. Supports both horizontal
+ * and vertical comparison modes with full keyboard accessibility.
+ * 
+ * @param props - Component props
+ * @returns Comparison slider with controls
+ */
 export function ImageComparisonSlider({
   originalImageUrl,
   upscaledImageUrl,

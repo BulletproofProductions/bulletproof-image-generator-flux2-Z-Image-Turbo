@@ -1,3 +1,40 @@
+/**
+ * @fileoverview Image Card Component for Gallery Display
+ * 
+ * A card component for displaying a single generated image with
+ * hover actions for download, view, and delete operations.
+ * 
+ * ## Features
+ * 
+ * - Square aspect ratio with cover fit
+ * - Hover overlay with action buttons
+ * - Download with generated filename
+ * - Open in new tab
+ * - Delete with confirmation dialog
+ * - Optional selection state for multi-select
+ * 
+ * ## Hover Actions
+ * 
+ * | Action | Icon | Description |
+ * |--------|------|-------------|
+ * | Download | ⬇ | Downloads image to local machine |
+ * | External | ↗ | Opens image in new browser tab |
+ * | Delete | 🗑 | Removes image with confirmation |
+ * 
+ * @example
+ * ```tsx
+ * <ImageCard
+ *   image={generatedImage}
+ *   onDelete={handleDelete}
+ *   showActions={true}
+ *   isSelected={selectedId === image.id}
+ *   onSelect={() => setSelectedId(image.id)}
+ * />
+ * ```
+ * 
+ * @module components/generate/results/image-card
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -20,14 +57,32 @@ import {
 } from "@/components/ui/card";
 import type { GeneratedImage } from "@/lib/types/generation";
 
+/**
+ * Props for the ImageCard component
+ */
 interface ImageCardProps {
+  /** The generated image data */
   image: GeneratedImage;
+  /** Callback to delete the image */
   onDelete?: (id: string) => void;
+  /** Whether to show action buttons on hover */
   showActions?: boolean;
+  /** Whether this card is currently selected */
   isSelected?: boolean;
+  /** Callback when card is clicked for selection */
   onSelect?: () => void;
 }
 
+/**
+ * Image card with hover actions for gallery display
+ * 
+ * Displays a generated image with an overlay of action buttons
+ * that appear on hover. Supports selection state for multi-select
+ * scenarios in the gallery.
+ * 
+ * @param props - Component props
+ * @returns Image card with hover actions
+ */
 export function ImageCard({
   image,
   onDelete,

@@ -1,3 +1,58 @@
+/**
+ * @fileoverview Template Selector Modal Component
+ * 
+ * A full-featured modal for selecting templates from a category.
+ * Provides search, preview, and custom value input capabilities.
+ * 
+ * ## Features
+ * 
+ * - **Search**: Filter templates by name, description, or prompt fragment
+ * - **Grid Display**: Responsive 1-3 column grid of template cards
+ * - **Custom Input**: Optional free-text input for custom values
+ * - **Selection State**: Visual indicator for selected template
+ * - **Preview**: Shows prompt fragment for each template
+ * 
+ * ## Modal Layout
+ * 
+ * ```
+ * ┌─────────────────────────────────────────────┐
+ * │ Select Style                            │ <- Title
+ * ├─────────────────────────────────────────────┤
+ * │ 🔍 [Search 62 options...            ] │ <- Search
+ * ├─────────────────────────────────────────────┤
+ * │ Custom Value                            │
+ * │ [Type custom...              ] [Use]   │ <- Custom input
+ * ├─────────────────────────────────────────────┤
+ * │ 62 presets available                    │
+ * │ ┌────────┐ ┌────────┐ ┌────────┐ │ <- Grid
+ * │ │Template│ │Template│ │Template│ │
+ * │ └────────┘ └────────┘ └────────┘ │
+ * │ ┌────────┐ ┌────────┐ ┌────────┐ │
+ * │ │Template│ │Template│ │Template│ │
+ * │ └────────┘ └────────┘ └────────┘ │
+ * ├─────────────────────────────────────────────┤
+ * │ Selected: Cinematic         [Cancel]   │ <- Footer
+ * └─────────────────────────────────────────────┘
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * <TemplateSelectorModal
+ *   open={isOpen}
+ *   onOpenChange={setIsOpen}
+ *   title="Select Style"
+ *   templates={styleTemplates}
+ *   selectedId={currentStyleId}
+ *   onSelect={(template) => setStyle(template.id)}
+ *   allowCustom={true}
+ *   customValue={customStyle}
+ *   onCustomChange={setCustomStyle}
+ * />
+ * ```
+ * 
+ * @module components/generate/prompt-builder/template-selector-modal
+ */
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -13,18 +68,39 @@ import { Input } from "@/components/ui/input";
 import type { Template } from "@/lib/types/generation";
 import { cn } from "@/lib/utils";
 
+/**
+ * Props for the TemplateSelectorModal component
+ */
 interface TemplateSelectorModalProps {
+  /** Whether the modal is open */
   open: boolean;
+  /** Callback when open state changes */
   onOpenChange: (open: boolean) => void;
+  /** Modal title */
   title: string;
+  /** Array of templates to display */
   templates: Template[];
+  /** Currently selected template ID */
   selectedId?: string | undefined;
+  /** Callback when a template is selected */
   onSelect: (template: Template) => void;
+  /** Whether to show custom value input (default: true) */
   allowCustom?: boolean;
+  /** Current custom value if using custom input */
   customValue?: string;
+  /** Callback when custom value changes */
   onCustomChange?: (value: string) => void;
 }
 
+/**
+ * Full-featured template selector modal with search and custom input
+ * 
+ * Displays a searchable grid of templates with optional custom value input.
+ * Templates show name, description, and a preview of the prompt fragment.
+ * 
+ * @param props - Component props
+ * @returns Modal dialog with template grid
+ */
 export function TemplateSelectorModal({
   open,
   onOpenChange,

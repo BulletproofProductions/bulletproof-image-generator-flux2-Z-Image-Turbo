@@ -1,3 +1,53 @@
+/**
+ * @fileoverview Preview Panel Component - Generation Settings & Controls
+ * 
+ * The Preview Panel is the center column of the generation interface, responsible for:
+ * - Displaying the assembled prompt preview
+ * - Workflow selection (Flux2, Z-Image Turbo, Background, Upscaler)
+ * - Generation settings (resolution, steps, guidance, etc.)
+ * - Preset save/load functionality
+ * - Progress display during generation
+ * - Generate button with validation
+ * 
+ * ## Workflow-Specific Settings
+ * 
+ * | Setting | Flux2 | Z-Image | Background | Upscaler |
+ * |---------|-------|---------|------------|----------|
+ * | Image Count | ✓ | ✓ | ✓ | ✗ |
+ * | Resolution | ✓ | ✗ | ✗ | ✓ (max) |
+ * | Aspect Ratio | ✓ | ✗ | ✗ | ✗ |
+ * | Steps | ✓ | ✓ | ✓ | ✗ |
+ * | Guidance | ✓ | ✓ | ✓ | ✗ |
+ * | Denoise | ✗ | ✓ | ✓ | ✗ |
+ * | Detection | ✗ | ✗ | ✓ | ✗ |
+ * | VRAM Preset | ✗ | ✗ | ✗ | ✓ |
+ * | Seed | ✓ | ✓ | ✓ | ✗ |
+ * 
+ * ## Input Requirements
+ * 
+ * - **Flux2**: Prompt only (reference images optional)
+ * - **Z-Image Turbo**: Prompt + Reference image required
+ * - **Background**: Prompt + Reference image required
+ * - **Upscaler**: Reference image only (no prompt)
+ * 
+ * @example
+ * ```tsx
+ * <PreviewPanel
+ *   assembledPrompt={assembledPrompt}
+ *   settings={settings}
+ *   onSettingsChange={handleSettingsChange}
+ *   onWorkflowChange={handleWorkflowChange}
+ *   onGenerate={handleGenerate}
+ *   isGenerating={isGenerating}
+ *   hasReferenceImage={hasAvatarSelected}
+ *   progress={progress}
+ *   // ... preset props
+ * />
+ * ```
+ * 
+ * @module components/generate/preview/preview-panel
+ */
+
 "use client";
 
 import { Wand2, Shuffle } from "lucide-react";
@@ -19,6 +69,9 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import type { GenerationSettings, Preset, PresetConfig, WorkflowType } from "@/lib/types/generation";
 
+/**
+ * Progress state from the generation hook (duplicated for type safety)
+ */
 interface ProgressState {
   step: number;
   totalSteps: number;
@@ -30,30 +83,69 @@ interface ProgressState {
   error?: string | null;
 }
 
+/**
+ * Props for the PreviewPanel component
+ */
 interface PreviewPanelProps {
+  /** The assembled prompt text to display */
   assembledPrompt: string;
+  /** Current generation settings */
   settings: GenerationSettings;
+  /** Callback when settings change (partial updates supported) */
   onSettingsChange: (settings: Partial<GenerationSettings>) => void;
+  /** Callback when workflow type changes */
   onWorkflowChange: (workflow: WorkflowType) => void;
+  /** Callback to trigger generation */
   onGenerate: () => void;
+  /** Whether generation is in progress */
   isGenerating: boolean;
-  hasReferenceImage: boolean; // Whether any subject has an avatar selected
+  /** Whether any subject has an avatar selected (needed for img2img workflows) */
+  hasReferenceImage: boolean;
   // Progress tracking
+  /** Current ComfyUI prompt ID for progress tracking */
   currentPromptId: string | null;
+  /** Current image index in multi-image generation */
   currentImageIndex: number;
+  /** Total images being generated */
   totalImages: number;
+  /** Progress state from SSE stream */
   progress: ProgressState | null;
+  /** Callback when progress completes */
   onProgressComplete?: () => void;
+  /** Callback when progress encounters an error */
   onProgressError?: (error: string) => void;
   // Preset props
+  /** Current preset configuration for saving */
   currentConfig: PresetConfig;
+  /** Available presets list */
   presets: Preset[];
+  /** Whether presets are loading */
   presetsLoading: boolean;
+  /** Callback to save a new preset */
   onSavePreset: (name: string, config: PresetConfig) => Promise<boolean>;
+  /** Callback to load a preset */
   onLoadPreset: (preset: Preset) => void;
+  /** Callback to delete a preset */
   onDeletePreset: (id: string) => Promise<boolean>;
 }
 
+/**
+ * Preview Panel - Central generation controls and settings
+ * 
+ * This component manages the generation workflow including:
+ * 1. Prompt preview display
+ * 2. Preset save/load controls
+ * 3. Workflow selection with conditional settings
+ * 4. Generation settings (resolution, steps, guidance, etc.)
+ * 5. Progress display during generation
+ * 6. Generate button with input validation
+ * 
+ * The component conditionally renders settings based on the selected workflow,
+ * as different workflows have different requirements and capabilities.
+ * 
+ * @param props - Component props (see PreviewPanelProps)
+ * @returns The preview panel component
+ */
 export function PreviewPanel({
   assembledPrompt,
   settings,
@@ -70,19 +162,31 @@ export function PreviewPanel({
   onLoadPreset,
   onDeletePreset,
 }: PreviewPanelProps) {
+  // Extract workflow type for conditional rendering
   const workflow = settings.workflow || "flux2";
   const isZImageTurbo = workflow === "z-image-turbo";
   const isBulletproofBackground = workflow === "bulletproof-background";
   const isBulletproofUpscaler = workflow === "bulletproof-upscaler";
   const requiresInputImage = isZImageTurbo || isBulletproofBackground || isBulletproofUpscaler;
   
-  // Disable generate button when workflow requires input image but none provided
+  // Validation: Disable generate when:
+  // - Already generating
+  // - No prompt (except for upscaler which doesn't need one)
+  // - Requires input image but none provided
   const isGenerateDisabled = isGenerating || (!isBulletproofUpscaler && !assembledPrompt) || (requiresInputImage && !hasReferenceImage);
   
+  /**
+   * Generates a random seed value for reproducibility control
+   */
   const handleRandomizeSeed = () => {
     onSettingsChange({ seed: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) });
   };
 
+  /**
+   * Handles seed input changes with validation
+   * - Empty string clears the seed (random)
+   * - Only accepts non-negative integers
+   */
   const handleSeedChange = (value: string) => {
     if (value === "") {
       onSettingsChange({ seed: undefined });
@@ -95,6 +199,7 @@ export function PreviewPanel({
   };
   return (
     <div className="h-full flex flex-col">
+      {/* Header Section */}
       <div className="p-4 border-b">
         <div className="flex items-start justify-between">
           <div>
@@ -104,7 +209,7 @@ export function PreviewPanel({
             </p>
           </div>
         </div>
-        {/* Preset Actions */}
+        {/* Preset Actions - Save/Load/Delete */}
         <div className="flex items-center gap-2 mt-3">
           <LoadPresetDropdown
             presets={presets}
@@ -121,9 +226,11 @@ export function PreviewPanel({
         </div>
       </div>
 
+      {/* Scrollable Settings Area */}
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
-          {/* Prompt Preview */}
+          {/* Prompt Preview Section
+              Shows the assembled prompt or placeholder for upscaler workflow */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Generated Prompt</Label>
             <div className={`p-4 bg-muted/50 rounded-lg min-h-[100px] ${isBulletproofUpscaler ? 'opacity-60' : ''}`}>
@@ -141,13 +248,14 @@ export function PreviewPanel({
 
           <Separator />
 
-          {/* Settings */}
+          {/* Generation Settings Section */}
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
               Generation Settings
             </h3>
 
-            {/* Workflow Selector */}
+            {/* Workflow Selector
+                Controls which workflow is used and affects which settings are shown */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Workflow</Label>
               <Select
@@ -164,6 +272,7 @@ export function PreviewPanel({
                   <SelectItem value="bulletproof-upscaler">Bulletproof Upscaler (4X)</SelectItem>
                 </SelectContent>
               </Select>
+              {/* Input image warnings for workflows that require them */}
               {isZImageTurbo && !hasReferenceImage && (
                 <p className="text-xs text-destructive">
                   ⚠️ Input image required for Z Image Turbo

@@ -1,3 +1,31 @@
+/**
+ * @fileoverview Presets API - Save and Load Prompt Builder Configurations
+ * 
+ * Presets allow users to save their prompt builder configurations and reload
+ * them later. This enables quick switching between different generation styles.
+ * 
+ * ## Endpoints
+ * 
+ * - GET /api/presets - List all presets
+ * - POST /api/presets - Create a new preset
+ * 
+ * ## Preset Structure
+ * 
+ * ```json
+ * {
+ *   "id": "preset_123",
+ *   "name": "Corporate Portrait",
+ *   "config": {
+ *     "promptBuilderState": { ... },
+ *     "settings": { ... }
+ *   },
+ *   "createdAt": "2024-01-01T00:00:00Z"
+ * }
+ * ```
+ * 
+ * @module api/presets
+ */
+
 import { NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -6,7 +34,10 @@ import type { Preset, CreatePresetInput, PresetConfig } from "@/lib/types/genera
 
 /**
  * GET /api/presets
- * List all presets
+ * 
+ * List all presets ordered by creation date (newest first).
+ * 
+ * @returns JSON array of Preset objects
  */
 export async function GET() {
   try {
@@ -35,7 +66,11 @@ export async function GET() {
 
 /**
  * POST /api/presets
- * Create a new preset
+ * 
+ * Create a new preset from the current prompt builder state.
+ * 
+ * @param request - Request with JSON body { name, config }
+ * @returns Created Preset object
  */
 export async function POST(request: Request) {
   try {

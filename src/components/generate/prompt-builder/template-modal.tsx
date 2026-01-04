@@ -1,3 +1,41 @@
+/**
+ * @fileoverview Simple Template Modal Component
+ * 
+ * A simpler version of the template selector modal without custom input.
+ * Used for cases where only predefined templates should be selectable.
+ * 
+ * ## Features
+ * 
+ * - Search filter by name and description
+ * - Two-column grid of template cards
+ * - Selection indicator (checkmark)
+ * - Auto-close on selection
+ * 
+ * ## vs TemplateSelectorModal
+ * 
+ * | Feature | TemplateModal | TemplateSelectorModal |
+ * |---------|---------------|----------------------|
+ * | Custom input | No | Yes |
+ * | Columns | 2 | 1-3 (responsive) |
+ * | Prompt preview | No | Yes |
+ * | Size | 600px | 800px |
+ * 
+ * @example
+ * ```tsx
+ * <TemplateModal
+ *   open={isOpen}
+ *   onOpenChange={setIsOpen}
+ *   title="Select Lighting"
+ *   description="Choose a lighting style"
+ *   templates={lightingTemplates}
+ *   selectedId={currentLightingId}
+ *   onSelect={(t) => setLighting(t.id)}
+ * />
+ * ```
+ * 
+ * @module components/generate/prompt-builder/template-modal
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -14,16 +52,35 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Template } from "@/lib/types/generation";
 
+/**
+ * Props for the TemplateModal component
+ */
 interface TemplateModalProps {
+  /** Whether the modal is open */
   open: boolean;
+  /** Callback when open state changes */
   onOpenChange: (open: boolean) => void;
+  /** Modal title */
   title: string;
+  /** Optional description below title */
   description?: string;
+  /** Array of templates to display */
   templates: Template[];
+  /** Currently selected template ID */
   selectedId?: string;
+  /** Callback when a template is selected */
   onSelect: (template: Template) => void;
 }
 
+/**
+ * Simple template selector modal without custom input
+ * 
+ * Displays a searchable two-column grid of templates.
+ * Auto-closes when a template is selected.
+ * 
+ * @param props - Component props
+ * @returns Modal dialog with template grid
+ */
 export function TemplateModal({
   open,
   onOpenChange,

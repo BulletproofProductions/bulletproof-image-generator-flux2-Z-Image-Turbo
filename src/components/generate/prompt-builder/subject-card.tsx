@@ -1,3 +1,56 @@
+/**
+ * @fileoverview Subject Card Component
+ * 
+ * A card that displays and allows editing of a single subject configuration.
+ * Subjects represent people, characters, or objects in the generated image.
+ * 
+ * ## Subject Properties
+ * 
+ * | Property | Type | Description |
+ * |----------|------|-------------|
+ * | Avatar | Image | Reference image for the subject |
+ * | Pose | Template | Body position/stance |
+ * | Action | Template | What the subject is doing |
+ * | Clothing | Template | What the subject is wearing |
+ * | Expression | Template | Facial expression |
+ * | Hair | Free text | Hair style/color |
+ * | Makeup | Free text | Makeup description |
+ * | Custom | Free text | Any additional details |
+ * 
+ * ## Card Layout
+ * 
+ * ```
+ * ┌─────────────────────────────────────┐
+ * │ Subject 1                      [🗑] │ <- Header with delete
+ * ├─────────────────────────────────────┤
+ * │ ┌──────┐                            │
+ * │ │Avatar│ Avatar Name                │ <- Clickable avatar area
+ * │ └──────┘ Click to change            │
+ * │                                     │
+ * │ Pose        [Select pose...      v] │
+ * │ Action      [Select action...    v] │
+ * │ Clothing    [Select clothing...  v] │
+ * │ Expression  [Select expression...v] │
+ * │ Hair        [____________________ ] │
+ * │ Makeup      [____________________ ] │
+ * │ Custom      [____________________ ] │
+ * └─────────────────────────────────────┘
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * <SubjectCard
+ *   subject={subjectConfig}
+ *   index={0}
+ *   onUpdate={(updates) => updateSubject(id, updates)}
+ *   onRemove={() => removeSubject(id)}
+ *   onSelectAvatar={() => openAvatarModal(id)}
+ * />
+ * ```
+ * 
+ * @module components/generate/prompt-builder/subject-card
+ */
+
 "use client";
 
 import Image from "next/image";
@@ -20,14 +73,32 @@ import {
 import type { SubjectConfig } from "@/lib/types/generation";
 import { TemplateSelector } from "./template-selector";
 
+/**
+ * Props for the SubjectCard component
+ */
 interface SubjectCardProps {
+  /** The subject configuration to display/edit */
   subject: SubjectConfig;
+  /** Zero-based index for display ("Subject 1", "Subject 2", etc.) */
   index: number;
+  /** Callback when any subject property changes */
   onUpdate: (updates: Partial<SubjectConfig>) => void;
+  /** Callback to remove this subject */
   onRemove: () => void;
+  /** Callback to open avatar selector for this subject */
   onSelectAvatar: () => void;
 }
 
+/**
+ * Subject configuration card with avatar and attribute editors
+ * 
+ * Displays a card with all editable properties for a single subject.
+ * Template selectors are used for categorized attributes (pose, action, etc.)
+ * while free-text inputs are used for open-ended properties (hair, makeup).
+ * 
+ * @param props - Component props
+ * @returns Subject card with all edit controls
+ */
 export function SubjectCard({
   subject,
   index,

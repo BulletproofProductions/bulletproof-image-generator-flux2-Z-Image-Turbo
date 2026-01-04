@@ -1,3 +1,83 @@
+/**
+ * @fileoverview Image Generation API - ComfyUI Integration Endpoint
+ * 
+ * This API endpoint handles image generation requests by coordinating with
+ * ComfyUI. It supports multiple workflow types and handles the complete
+ * lifecycle from request validation to image storage.
+ * 
+ * ## Supported Workflows
+ * 
+ * | Workflow | Type | Description |
+ * |----------|------|-------------|
+ * | flux2 | txt2img | Standard FLUX.2 text-to-image generation |
+ * | z-image-turbo | img2img | Fast style transfer with low denoise |
+ * | bulletproof-background | img2img | Subject-preserving background replacement |
+ * | bulletproof-upscaler | upscale | AI-enhanced image upscaling |
+ * 
+ * ## Request Flow
+ * 
+ * ```
+ * 1. Validate request body (prompt, settings, reference images)
+ * 2. Check ComfyUI server availability
+ * 3. Load avatar images for reference if provided
+ * 4. Create generation record in database (status: processing)
+ * 5. Upload reference image to ComfyUI if needed
+ * 6. Start async generation loop:
+ *    a. Build workflow based on type
+ *    b. Queue prompt on ComfyUI
+ *    c. Wait for completion (with progress tracking)
+ *    d. Download generated images
+ *    e. Upload to storage (local/Vercel Blob)
+ *    f. Save image records to database
+ * 7. Return generation record immediately (async processing continues)
+ * ```
+ * 
+ * ## Error Handling
+ * 
+ * - 400: Invalid request (missing/invalid fields)
+ * - 503: ComfyUI server unavailable
+ * - 500: Internal server error
+ * 
+ * Generation failures are recorded in the database with error messages
+ * and the status is updated to "failed".
+ * 
+ * ## API
+ * 
+ * POST /api/generate
+ * 
+ * Request Body:
+ * ```json
+ * {
+ *   "prompt": "A beautiful sunset...",
+ *   "settings": {
+ *     "resolution": "2K",
+ *     "aspectRatio": "16:9",
+ *     "imageCount": 2,
+ *     "steps": 20,
+ *     "guidance": 4,
+ *     "workflow": "flux2"
+ *   },
+ *   "referenceImages": [
+ *     { "avatarId": "abc123", "type": "human" }
+ *   ]
+ * }
+ * ```
+ * 
+ * Response (201):
+ * ```json
+ * {
+ *   "generation": {
+ *     "id": "gen_xyz",
+ *     "prompt": "A beautiful sunset...",
+ *     "status": "processing",
+ *     "images": []
+ *   }
+ * }
+ * ```
+ * 
+ * @module api/generate
+ */
+
 import { NextResponse } from "next/server";
 import { eq, inArray } from "drizzle-orm";
 import { comfyui, getResolutionDimensions } from "@/lib/comfyui";
@@ -14,16 +94,27 @@ import type {
   WorkflowType,
 } from "@/lib/types/generation";
 
-
+/**
+ * Reference image data loaded from avatar records
+ */
 interface ReferenceImage {
+  /** URL to the stored image */
   imageUrl: string;
+  /** Type of avatar (human/object) */
   type: AvatarType;
+  /** Avatar name for logging */
   name: string;
 }
 
+/**
+ * Expected request body structure for generation
+ */
 interface GenerateRequestBody {
+  /** The text prompt for generation */
   prompt: string;
+  /** Generation settings (resolution, steps, etc.) */
   settings: GenerationSettings;
+  /** Optional reference images from avatars */
   referenceImages?: {
     avatarId: string;
     type: AvatarType;
@@ -32,7 +123,12 @@ interface GenerateRequestBody {
 
 /**
  * POST /api/generate
- * Start a new image generation using ComfyUI
+ * 
+ * Start a new image generation using ComfyUI.
+ * Returns immediately with generation record while processing continues async.
+ * 
+ * @param request - Next.js request object
+ * @returns JSON response with generation record
  */
 export async function POST(request: Request) {
   try {

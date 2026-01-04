@@ -1,3 +1,48 @@
+/**
+ * @fileoverview Three-Column Layout Component for the Generation Page
+ * 
+ * This component provides the main layout structure for the image generation interface.
+ * It implements a responsive design pattern that switches between:
+ * 
+ * - **Desktop (lg+)**: Three collapsible columns
+ *   - Left: Prompt Builder panel
+ *   - Center: Preview & Generate panel
+ *   - Right: Results panel
+ * 
+ * - **Mobile/Tablet (<lg)**: Tabbed interface
+ *   - Builder tab
+ *   - Preview tab
+ *   - Results tab
+ * 
+ * ## Features
+ * 
+ * - Collapsible side panels with smooth animations
+ * - Fixed-height viewport with internal scrolling
+ * - Persistent collapse state during session
+ * - Responsive grid layout with configurable column widths
+ * 
+ * ## Layout Algorithm
+ * 
+ * Desktop grid columns are calculated based on collapse state:
+ * ```
+ * Both open:     [350px/400px] [1fr] [350px/400px]
+ * Left collapsed: [1fr] [350px/400px]
+ * Right collapsed: [350px/400px] [1fr]
+ * Both collapsed: [1fr]
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * <ThreeColumnLayout
+ *   leftPanel={<PromptBuilderPanel />}
+ *   middlePanel={<PreviewPanel />}
+ *   rightPanel={<ResultsPanel />}
+ * />
+ * ```
+ * 
+ * @module components/generate/three-column-layout
+ */
+
 "use client";
 
 import { ReactNode, useState } from "react";
@@ -6,25 +51,49 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
+/**
+ * Props for the ThreeColumnLayout component
+ */
 interface ThreeColumnLayoutProps {
+  /** Content for the left panel (typically PromptBuilderPanel) */
   leftPanel: ReactNode;
+  /** Content for the middle panel (typically PreviewPanel) */
   middlePanel: ReactNode;
+  /** Content for the right panel (typically ResultsPanel) */
   rightPanel: ReactNode;
+  /** Additional CSS classes for the container */
   className?: string;
 }
 
+/**
+ * Three-column responsive layout with collapsible side panels
+ * 
+ * Renders as a tabbed interface on mobile and a three-column grid on desktop.
+ * Side panels can be collapsed to maximize the center content area.
+ * 
+ * @param props - Component props
+ * @param props.leftPanel - Left panel content (Prompt Builder)
+ * @param props.middlePanel - Center panel content (Preview & Generate)
+ * @param props.rightPanel - Right panel content (Results)
+ * @param props.className - Additional CSS classes
+ * 
+ * @returns The layout component with responsive behavior
+ */
 export function ThreeColumnLayout({
   leftPanel,
   middlePanel,
   rightPanel,
   className,
 }: ThreeColumnLayoutProps) {
+  // Track panel collapse state (session-only, not persisted)
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
 
   return (
     <>
-      {/* Mobile Layout - Tabbed Interface */}
+      {/* Mobile Layout - Tabbed Interface 
+          Uses shadcn/ui Tabs for a familiar mobile navigation pattern.
+          Each tab contains a full-height scrollable panel. */}
       <div className={cn("lg:hidden", className)}>
         <Tabs defaultValue="builder" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -50,10 +119,13 @@ export function ThreeColumnLayout({
         </Tabs>
       </div>
 
-      {/* Desktop Layout - Three Columns */}
+      {/* Desktop Layout - Three Columns
+          Uses CSS Grid with dynamic column definitions based on collapse state.
+          Panel widths: 350px (lg) / 400px (xl) for side panels, 1fr for center. */}
       <div
         className={cn(
           "hidden lg:grid gap-4 h-full transition-all duration-300",
+          // Dynamic grid columns based on collapse state
           leftCollapsed && rightCollapsed
             ? "grid-cols-1"
             : leftCollapsed
@@ -64,7 +136,9 @@ export function ThreeColumnLayout({
           className
         )}
       >
-        {/* Left Panel - Prompt Builder */}
+        {/* Left Panel - Prompt Builder
+            Fixed height with internal scroll for long template lists.
+            Collapse button positioned at panel edge. */}
         {!leftCollapsed && (
           <div className="h-[calc(100vh-8rem)] overflow-hidden relative">
             <div className="h-full overflow-y-auto rounded-lg border bg-card">
@@ -82,7 +156,9 @@ export function ThreeColumnLayout({
           </div>
         )}
 
-        {/* Collapsed Left Panel Button */}
+        {/* Collapsed Left Panel Button
+            Fixed position button to restore the left panel.
+            Vertical text indicates the panel content. */}
         {leftCollapsed && (
           <Button
             variant="outline"
@@ -96,14 +172,18 @@ export function ThreeColumnLayout({
           </Button>
         )}
 
-        {/* Middle Panel - Preview & Generate */}
+        {/* Middle Panel - Preview & Generate
+            Always visible, takes remaining space (1fr).
+            Contains prompt preview and generate button. */}
         <div className="h-[calc(100vh-8rem)] overflow-hidden">
           <div className="h-full overflow-y-auto rounded-lg border bg-card">
             {middlePanel}
           </div>
         </div>
 
-        {/* Right Panel - Results */}
+        {/* Right Panel - Results
+            Shows generation results and history.
+            Collapse button positioned at panel edge. */}
         {!rightCollapsed && (
           <div className="h-[calc(100vh-8rem)] overflow-hidden relative">
             <Button
@@ -121,7 +201,8 @@ export function ThreeColumnLayout({
           </div>
         )}
 
-        {/* Collapsed Right Panel Button */}
+        {/* Collapsed Right Panel Button
+            Fixed position button to restore the right panel. */}
         {rightCollapsed && (
           <Button
             variant="outline"

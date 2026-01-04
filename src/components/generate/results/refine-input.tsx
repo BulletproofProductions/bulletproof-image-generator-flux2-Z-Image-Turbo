@@ -1,3 +1,52 @@
+/**
+ * @fileoverview Refine Input Component for Image Iteration
+ * 
+ * Text input component for submitting refinement instructions to
+ * iterate on generated images. Provides quick-select suggestions
+ * for common refinement operations.
+ * 
+ * ## Features
+ * 
+ * - Textarea for natural language instructions
+ * - Quick suggestion buttons for common refinements
+ * - Submit button with loading state
+ * - Clears input after successful submission
+ * 
+ * ## Refinement Workflow
+ * 
+ * ```
+ * 1. User types refinement instruction (or clicks suggestion)
+ * 2. User clicks "Refine Image" button
+ * 3. onRefine callback is called with instruction
+ * 4. Component shows loading state during refinement
+ * 5. Input is cleared on successful completion
+ * ```
+ * 
+ * ## Default Suggestions
+ * 
+ * - Make the lighting more dramatic
+ * - Add more vibrant colors
+ * - Make the background more detailed
+ * - Change the expression to be happier
+ * - Add more depth and shadows
+ * - Make the composition more dynamic
+ * - Increase the contrast
+ * - Add a warm color tone
+ * 
+ * @example
+ * ```tsx
+ * <RefineInput
+ *   onRefine={async (instruction) => {
+ *     await refineImage(generationId, instruction);
+ *   }}
+ *   isRefining={isRefiningState}
+ *   disabled={isGenerating}
+ * />
+ * ```
+ * 
+ * @module components/generate/results/refine-input
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -6,12 +55,21 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * Props for the RefineInput component
+ */
 interface RefineInputProps {
+  /** Callback when refinement is submitted */
   onRefine: (instruction: string) => Promise<void>;
+  /** Whether refinement is currently in progress */
   isRefining: boolean;
+  /** Whether input is disabled (e.g., during generation) */
   disabled?: boolean;
 }
 
+/**
+ * Common refinement suggestions for quick selection
+ */
 const REFINEMENT_SUGGESTIONS = [
   "Make the lighting more dramatic",
   "Add more vibrant colors",
@@ -23,6 +81,16 @@ const REFINEMENT_SUGGESTIONS = [
   "Add a warm color tone",
 ];
 
+/**
+ * Refinement input with suggestions and submit button
+ * 
+ * Provides a textarea for entering refinement instructions with
+ * quick-select suggestion buttons. Handles form submission and
+ * displays loading state during refinement.
+ * 
+ * @param props - Component props
+ * @returns Refinement input form
+ */
 export function RefineInput({ onRefine, isRefining, disabled = false }: RefineInputProps) {
   const [instruction, setInstruction] = useState("");
 

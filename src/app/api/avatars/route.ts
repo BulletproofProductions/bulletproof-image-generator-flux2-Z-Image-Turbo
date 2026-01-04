@@ -1,3 +1,28 @@
+/**
+ * @fileoverview Avatar API - CRUD Operations for Reference Images
+ * 
+ * Avatars are reference images (people or objects) that can be linked to
+ * subjects in the prompt builder for img2img generation workflows.
+ * 
+ * ## Endpoints
+ * 
+ * - GET /api/avatars - List all avatars
+ * - POST /api/avatars - Create avatar with image upload (multipart/form-data)
+ * 
+ * ## Image Storage
+ * 
+ * Images are uploaded via multipart/form-data and stored using the storage
+ * module (@vercel/blob in production, local filesystem in development).
+ * 
+ * ## Validation
+ * 
+ * - Name: Required, non-empty string
+ * - Avatar Type: Must be "human" or "object"
+ * - Image: Required, max 5MB, allowed types: JPEG, PNG, GIF, WEBP
+ * 
+ * @module api/avatars
+ */
+
 import { NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -7,7 +32,10 @@ import type { Avatar, AvatarType } from "@/lib/types/generation";
 
 /**
  * GET /api/avatars
- * List all avatars
+ * 
+ * List all avatars ordered by creation date (newest first).
+ * 
+ * @returns JSON array of Avatar objects
  */
 export async function GET() {
   try {
@@ -28,7 +56,12 @@ export async function GET() {
 
 /**
  * POST /api/avatars
- * Create a new avatar with image upload
+ * 
+ * Create a new avatar with image upload.
+ * Expects multipart/form-data with fields: name, avatarType, image, description (optional)
+ * 
+ * @param request - Request with FormData body
+ * @returns Created Avatar object
  */
 export async function POST(request: Request) {
   try {

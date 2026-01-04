@@ -1,8 +1,107 @@
+/**
+ * @fileoverview Prompt Template Library for Bulletproof AI Image Generator
+ * 
+ * This module contains a comprehensive library of ~508 pre-built prompt templates
+ * organized into 12 categories. These templates are used in the Prompt Builder UI
+ * to help users construct effective prompts for image generation.
+ * 
+ * ## Template Categories
+ * 
+ * ### General Categories (8)
+ * These work with all workflow types:
+ * 
+ * | Category   | Count | Purpose                                    |
+ * |------------|-------|--------------------------------------------|
+ * | lighting   | 38    | Natural, studio, dramatic lighting setups  |
+ * | camera     | 46    | Shot types, angles, composition techniques |
+ * | style      | 62    | Art styles from photorealistic to abstract |
+ * | location   | 74    | Indoor/outdoor environments and settings   |
+ * | pose       | 38    | Body positions and stances                 |
+ * | action     | 48    | Activities and expressions as actions      |
+ * | clothing   | 55    | Outfit types from casual to fantasy        |
+ * | expression | 42    | Facial expressions and emotions            |
+ * 
+ * ### FLUX.2 Optimized Categories (4)
+ * These leverage FLUX.2's understanding of photography terminology:
+ * 
+ * | Category     | Count | Purpose                                   |
+ * |--------------|-------|-------------------------------------------|
+ * | mood         | 28    | Overall atmosphere and emotional tone     |
+ * | cameraModel  | 24    | Specific camera bodies for "shot on" look |
+ * | lens         | 27    | Focal lengths and lens characteristics    |
+ * | colorPalette | 26    | Color schemes and tonal palettes          |
+ * 
+ * ## Template Structure
+ * 
+ * Each template follows the `Template` interface:
+ * ```typescript
+ * interface Template {
+ *   id: string;           // Unique identifier (e.g., "lighting-golden-hour")
+ *   name: string;         // Display name (e.g., "Golden Hour")
+ *   description: string;  // User-friendly tooltip description
+ *   promptFragment: string; // Actual text added to the prompt
+ * }
+ * ```
+ * 
+ * ## Prompt Assembly Order
+ * 
+ * Templates are assembled in this specific order (optimized for FLUX.2):
+ * 1. Style
+ * 2. Camera Model (FLUX.2)
+ * 3. Subjects (with pose, action, clothing, expression)
+ * 4. Location
+ * 5. Mood (FLUX.2)
+ * 6. Lighting
+ * 7. Lens (FLUX.2)
+ * 8. Camera/Composition
+ * 9. Color Palette (FLUX.2)
+ * 10. Custom prompt additions
+ * 
+ * @example
+ * ```typescript
+ * import { lightingTemplates, getTemplateById } from "@/lib/data/templates";
+ * 
+ * // Get all lighting options for a dropdown
+ * const options = lightingTemplates.map(t => ({ value: t.id, label: t.name }));
+ * 
+ * // Get a specific template's prompt fragment
+ * const template = getTemplateById("lighting-golden-hour");
+ * console.log(template?.promptFragment);
+ * // Output: "golden hour lighting, warm sunlight, soft shadows"
+ * ```
+ * 
+ * @module lib/data/templates
+ */
+
 import type { Template } from "@/lib/types/generation";
 
 // ==========================================
-// Lighting Templates
+// Lighting Templates (38 templates)
 // ==========================================
+
+/**
+ * Lighting Templates - Controls how the scene is illuminated
+ * 
+ * Lighting is crucial for setting mood and atmosphere. This collection includes:
+ * 
+ * ## Subcategories
+ * - **Natural Lighting**: Golden hour, blue hour, overcast, dappled light
+ * - **Studio Lighting**: Softbox, ring light, Rembrandt, butterfly, split
+ * - **Dramatic/Artistic**: Chiaroscuro, cinematic, noir, neon
+ * - **Night/Artificial**: Moonlight, candlelight, fire light, streetlamp
+ * 
+ * ## Usage Tips
+ * - Combine lighting with mood templates for cohesive atmosphere
+ * - Natural lighting works well with outdoor locations
+ * - Studio lighting is ideal for portraits and product shots
+ * 
+ * @example
+ * ```typescript
+ * // Professional portrait setup
+ * const lighting = lightingTemplates.find(t => t.id === "lighting-rembrandt");
+ * // promptFragment: "Rembrandt lighting, triangle shadow under eye, classic portrait style"
+ * ```
+ */
 export const lightingTemplates: Template[] = [
   // Natural Lighting
   {
@@ -241,8 +340,34 @@ export const lightingTemplates: Template[] = [
 ];
 
 // ==========================================
-// Camera/Composition Templates
+// Camera/Composition Templates (46 templates)
 // ==========================================
+
+/**
+ * Camera/Composition Templates - Shot types, angles, and framing techniques
+ * 
+ * These templates control how the subject is framed and from what perspective.
+ * Essential for directing the viewer's attention and creating visual impact.
+ * 
+ * ## Subcategories
+ * - **Shot Types**: Close-up, medium, wide, establishing, over-shoulder
+ * - **Angles**: High angle, low angle, bird's eye, worm's eye, Dutch angle
+ * - **Composition Rules**: Rule of thirds, golden ratio, centered, symmetry
+ * - **Depth & Focus**: Shallow DOF, deep focus, bokeh, tilt-shift
+ * - **Movement**: Panning, motion blur, frozen motion
+ * 
+ * ## Usage Tips
+ * - Close-ups work best for emotional portraits and detail shots
+ * - Wide shots establish context and environment
+ * - Low angles make subjects appear powerful/heroic
+ * - High angles can make subjects appear vulnerable/small
+ * 
+ * @example
+ * ```typescript
+ * const camera = cameraTemplates.find(t => t.id === "camera-rule-of-thirds");
+ * // promptFragment: "rule of thirds composition, off-center subject, balanced framing"
+ * ```
+ */
 export const cameraTemplates: Template[] = [
   // Standard Shots
   {
@@ -512,8 +637,36 @@ export const cameraTemplates: Template[] = [
 ];
 
 // ==========================================
-// Style Templates
+// Style Templates (62 templates)
 // ==========================================
+
+/**
+ * Style Templates - Visual art styles and rendering aesthetics
+ * 
+ * The largest category, covering everything from photorealism to abstract art.
+ * Style templates significantly impact the overall look and feel of generated images.
+ * 
+ * ## Subcategories
+ * - **Realistic**: Photorealistic, hyperrealistic, documentary
+ * - **3D/CGI**: Octane render, Unreal Engine, Pixar-style, claymation
+ * - **Illustration**: Digital art, concept art, comic book, graphic novel
+ * - **Traditional Art**: Oil painting, watercolor, charcoal, pencil sketch
+ * - **Animation**: Anime, Ghibli-style, Disney-style, 2D animation
+ * - **Vintage**: Film noir, retro 80s, polaroid, daguerreotype
+ * - **Genre-Specific**: Sci-fi, fantasy, horror, steampunk, cyberpunk
+ * 
+ * ## FLUX.2 Compatibility
+ * FLUX.2 excels at realistic and semi-realistic styles. For best results:
+ * - Photorealistic styles work extremely well
+ * - Anime/illustration may need more specific prompting
+ * - Combine with camera model templates for authentic photography looks
+ * 
+ * @example
+ * ```typescript
+ * const style = styleTemplates.find(t => t.id === "style-film-noir");
+ * // promptFragment: "film noir style, black and white, high contrast, dramatic shadows"
+ * ```
+ */
 export const styleTemplates: Template[] = [
   // Realistic
   {
@@ -984,8 +1137,37 @@ export const styleTemplates: Template[] = [
 ];
 
 // ==========================================
-// Location Templates
+// Location Templates (74 templates)
 // ==========================================
+
+/**
+ * Location Templates - Settings, environments, and backdrops
+ * 
+ * The most extensive category providing diverse environments from urban
+ * cityscapes to fantastical realms. Location sets the context for your image.
+ * 
+ * ## Subcategories
+ * - **Urban**: City streets, downtown, alleys, rooftops, industrial
+ * - **Nature - Forests**: Dense woods, enchanted forest, bamboo, redwood
+ * - **Nature - Water**: Beach, ocean, lakeside, waterfall, river
+ * - **Nature - Mountains**: Alpine, cliff, canyon, volcanic
+ * - **Indoor - Residential**: Living room, bedroom, kitchen, bathroom
+ * - **Indoor - Commercial**: Office, cafe, restaurant, gym, library
+ * - **Indoor - Grand**: Cathedral, palace, museum, theater
+ * - **Fantasy/Sci-fi**: Space station, alien planet, underwater city, floating islands
+ * - **Abstract**: Studio backdrop, gradient, void, infinite space
+ * 
+ * ## Background Replacement Workflow
+ * These templates are especially useful with the `bulletproof-background` workflow,
+ * which replaces backgrounds while preserving the subject.
+ * 
+ * @example
+ * ```typescript
+ * // For background replacement workflow
+ * const location = locationTemplates.find(t => t.id === "location-beach-sunset");
+ * // Use promptFragment as the new background description
+ * ```
+ */
 export const locationTemplates: Template[] = [
   // Urban
   {
@@ -1353,8 +1535,34 @@ export const locationTemplates: Template[] = [
 ];
 
 // ==========================================
-// Pose Templates
+// Pose Templates (38 templates)
 // ==========================================
+
+/**
+ * Pose Templates - Body positions, stances, and postures
+ * 
+ * Used within Subject configurations to describe how the person/character
+ * is positioned in the scene. Best combined with action and expression templates.
+ * 
+ * ## Subcategories
+ * - **Standing**: Upright, relaxed, confident, hands on hips, arms crossed
+ * - **Sitting**: Casual, formal, cross-legged, lounging
+ * - **Leaning**: Against wall, on railing, casual lean
+ * - **Lying**: Reclined, prone, side-lying
+ * - **Dynamic/Movement**: Walking, running, jumping, dancing
+ * - **Action Poses**: Fighting stance, yoga, athletic
+ * - **Professional**: Business pose, model pose, editorial
+ * 
+ * ## Subject Integration
+ * Pose templates are applied per-subject in the prompt builder, allowing
+ * different subjects to have different poses in the same scene.
+ * 
+ * @example
+ * ```typescript
+ * const pose = poseTemplates.find(t => t.id === "pose-leaning-wall");
+ * // promptFragment: "leaning against wall, casual pose, relaxed stance"
+ * ```
+ */
 export const poseTemplates: Template[] = [
   // Standing
   {
@@ -1600,8 +1808,35 @@ export const poseTemplates: Template[] = [
 ];
 
 // ==========================================
-// Action Templates
+// Action Templates (48 templates)
 // ==========================================
+
+/**
+ * Action Templates - Activities, behaviors, and dynamic states
+ * 
+ * Describes what the subject is doing in the scene. Adds dynamism
+ * and narrative to the image beyond static poses.
+ * 
+ * ## Subcategories
+ * - **Emotional Actions**: Smiling, laughing, crying, thinking
+ * - **Work Activities**: Typing, writing, presenting, crafting
+ * - **Physical Activities**: Running, jumping, stretching, exercising
+ * - **Leisure**: Reading, gaming, listening to music, relaxing
+ * - **Social**: Talking, hugging, shaking hands, celebrating
+ * - **Daily Activities**: Eating, drinking, cooking, cleaning
+ * - **Contemplative**: Meditating, praying, daydreaming, observing
+ * 
+ * ## Combining with Poses
+ * Actions work best when combined with compatible poses:
+ * - "Reading" + "Sitting" = natural combination
+ * - "Running" + "Dynamic movement pose" = action shot
+ * 
+ * @example
+ * ```typescript
+ * const action = actionTemplates.find(t => t.id === "action-reading");
+ * // promptFragment: "reading a book, absorbed in reading, focused attention"
+ * ```
+ */
 export const actionTemplates: Template[] = [
   // Emotions/Expressions as Actions
   {
@@ -1883,8 +2118,36 @@ export const actionTemplates: Template[] = [
 ];
 
 // ==========================================
-// Clothing Templates
+// Clothing Templates (55 templates)
 // ==========================================
+
+/**
+ * Clothing Templates - Outfit types, fashion styles, and attire
+ * 
+ * Defines what the subject is wearing. Important for character consistency
+ * and setting appropriate context for the scene.
+ * 
+ * ## Subcategories
+ * - **Casual**: T-shirt, jeans, hoodie, sweater, sneakers
+ * - **Formal/Business**: Suit, blazer, dress shirt, tie, formal dress
+ * - **Dresses**: Sundress, cocktail dress, evening gown, maxi dress
+ * - **Athletic/Sportswear**: Workout clothes, gym wear, sports uniform
+ * - **Streetwear**: Urban fashion, trendy, branded, hip-hop style
+ * - **Elegant/Luxury**: Designer wear, haute couture, luxury fashion
+ * - **Vintage/Retro**: 50s style, 70s fashion, 80s aesthetic, vintage
+ * - **Cultural/Traditional**: Kimono, sari, hanbok, traditional dress
+ * - **Fantasy/Costume**: Medieval armor, royal robes, superhero, cyberpunk
+ * 
+ * ## Avatar Consistency
+ * When using avatars, clothing templates help maintain visual consistency
+ * across different generations while allowing outfit variations.
+ * 
+ * @example
+ * ```typescript
+ * const clothing = clothingTemplates.find(t => t.id === "clothing-business-suit");
+ * // promptFragment: "business suit, professional attire, tailored fit"
+ * ```
+ */
 export const clothingTemplates: Template[] = [
   // Casual
   {
@@ -2236,8 +2499,35 @@ export const clothingTemplates: Template[] = [
 ];
 
 // ==========================================
-// Expression Templates
+// Expression Templates (42 templates)
 // ==========================================
+
+/**
+ * Expression Templates - Facial expressions and emotional states
+ * 
+ * Fine-tuned control over the subject's facial expression. Works alongside
+ * action templates but focuses specifically on the face.
+ * 
+ * ## Subcategories
+ * - **Positive Emotions**: Happy, joyful, excited, content, grateful
+ * - **Confident**: Determined, proud, smug, confident, self-assured
+ * - **Thoughtful**: Contemplative, curious, focused, questioning
+ * - **Surprised**: Shocked, amazed, startled, intrigued
+ * - **Negative**: Sad, angry, worried, anxious, frustrated
+ * - **Mysterious**: Enigmatic, seductive, mischievous, knowing
+ * - **Neutral**: Calm, serene, peaceful, blank
+ * 
+ * ## Expression vs Action
+ * - Expression: The look on the face (e.g., "smiling expression")
+ * - Action: What they're doing (e.g., "smiling at camera")
+ * Both can be combined for richer descriptions.
+ * 
+ * @example
+ * ```typescript
+ * const expression = expressionTemplates.find(t => t.id === "expression-confident");
+ * // promptFragment: "confident expression, self-assured look, determined gaze"
+ * ```
+ */
 export const expressionTemplates: Template[] = [
   // Positive Emotions
   {
@@ -2513,8 +2803,38 @@ export const expressionTemplates: Template[] = [
 ];
 
 // ==========================================
-// Mood/Atmosphere Templates (FLUX.2)
+// Mood/Atmosphere Templates - FLUX.2 Optimized (28 templates)
 // ==========================================
+
+/**
+ * Mood/Atmosphere Templates - Overall emotional tone and ambiance
+ * 
+ * **FLUX.2 Optimized**: These templates leverage FLUX.2's strong understanding
+ * of atmospheric and tonal concepts for cohesive mood creation.
+ * 
+ * Unlike lighting (which is technical), mood describes the emotional
+ * feel of the entire image - the intangible atmosphere.
+ * 
+ * ## Subcategories
+ * - **Positive Moods**: Clean, warm, joyful, peaceful, romantic
+ * - **Dramatic**: Intense, epic, powerful, heroic, triumphant
+ * - **Melancholic**: Nostalgic, bittersweet, lonely, wistful
+ * - **Documentary**: Authentic, candid, editorial, journalistic
+ * - **Energy**: Dynamic, energetic, vibrant, electric
+ * - **Nostalgic**: Vintage, retro, timeless, classic
+ * - **Professional**: Corporate, polished, refined, commercial
+ * 
+ * ## Best Practices
+ * - Combine mood with compatible lighting (e.g., "dramatic mood" + "cinematic lighting")
+ * - Mood affects color grading interpretation by FLUX.2
+ * - Works synergistically with color palette templates
+ * 
+ * @example
+ * ```typescript
+ * const mood = moodTemplates.find(t => t.id === "mood-cinematic");
+ * // promptFragment: "cinematic mood, movie still quality, dramatic atmosphere"
+ * ```
+ */
 export const moodTemplates: Template[] = [
   // Positive Moods
   {
@@ -2706,8 +3026,42 @@ export const moodTemplates: Template[] = [
 ];
 
 // ==========================================
-// Camera Model Templates (FLUX.2)
+// Camera Model Templates - FLUX.2 Optimized (24 templates)
 // ==========================================
+
+/**
+ * Camera Model Templates - Specific camera bodies for authentic photography looks
+ * 
+ * **FLUX.2 Optimized**: FLUX.2 has learned the visual characteristics of
+ * specific cameras from its training data. Using "shot on [Camera]" prompts
+ * can invoke those learned characteristics.
+ * 
+ * Each camera model has distinct rendering characteristics:
+ * - Color science and skin tones
+ * - Dynamic range and highlight rolloff
+ * - Noise characteristics and grain structure
+ * - Overall "look" and feel
+ * 
+ * ## Subcategories
+ * - **Modern Professional**: Sony A7 series, Canon R5, Nikon Z8
+ * - **Medium Format**: Hasselblad, Fujifilm GFX, Phase One
+ * - **Fujifilm**: X-T series with film simulations
+ * - **Leica**: Classic rangefinder rendering
+ * - **Film Cameras**: Contax, Mamiya, Nikon F series
+ * - **Vintage**: Kodak Portra look, expired film aesthetic
+ * - **Mobile**: iPhone computational photography look
+ * 
+ * ## Usage Tips
+ * - Pair with matching lens templates for cohesive results
+ * - Medium format cameras suggest higher detail and shallower DOF
+ * - Film cameras invoke analog aesthetics
+ * 
+ * @example
+ * ```typescript
+ * const camera = cameraModelTemplates.find(t => t.id === "camera-model-hasselblad");
+ * // promptFragment: "shot on Hasselblad, medium format, exceptional detail, creamy bokeh"
+ * ```
+ */
 export const cameraModelTemplates: Template[] = [
   // Modern Professional Digital
   {
@@ -2863,8 +3217,44 @@ export const cameraModelTemplates: Template[] = [
 ];
 
 // ==========================================
-// Lens Templates (FLUX.2)
+// Lens Templates - FLUX.2 Optimized (27 templates)
 // ==========================================
+
+/**
+ * Lens Templates - Focal lengths and lens characteristics
+ * 
+ * **FLUX.2 Optimized**: FLUX.2 understands how different focal lengths
+ * affect perspective, depth of field, and subject rendering.
+ * 
+ * Lens choice dramatically affects image look:
+ * - **Perspective distortion**: Wide lenses exaggerate, telephotos compress
+ * - **Depth of field**: Longer lenses = shallower DOF at same aperture
+ * - **Subject rendering**: Portrait lenses (85mm+) are flattering for faces
+ * - **Bokeh quality**: Fast primes produce creamy out-of-focus areas
+ * 
+ * ## Subcategories
+ * - **Wide Angle (14-28mm)**: Dramatic perspectives, environmental context
+ * - **Standard (35-50mm)**: Natural perspective, versatile
+ * - **Portrait (85-135mm)**: Flattering for faces, compression
+ * - **Telephoto (200mm+)**: Strong compression, distant subjects
+ * - **Zoom Ranges**: 24-70mm, 70-200mm versatility
+ * - **Specialty**: Macro, fisheye, tilt-shift
+ * - **Vintage Lenses**: Helios swirl bokeh, Leica Noctilux glow
+ * 
+ * ## Focal Length Guide
+ * - 14-24mm: Architecture, landscapes, dramatic effect
+ * - 35mm: Street photography, environmental portraits
+ * - 50mm: "Nifty fifty", natural perspective
+ * - 85mm: Classic portrait focal length
+ * - 135mm: Tight portraits, beautiful bokeh
+ * - 200mm+: Sports, wildlife, extreme compression
+ * 
+ * @example
+ * ```typescript
+ * const lens = lensTemplates.find(t => t.id === "lens-85mm");
+ * // promptFragment: "85mm portrait lens, beautiful bokeh, flattering perspective"
+ * ```
+ */
 export const lensTemplates: Template[] = [
   // Prime Lenses - Wide
   {
@@ -3032,8 +3422,45 @@ export const lensTemplates: Template[] = [
 ];
 
 // ==========================================
-// Color Palette Templates (FLUX.2)
+// Color Palette Templates - FLUX.2 Optimized (26 templates)
 // ==========================================
+
+/**
+ * Color Palette Templates - Color schemes and tonal palettes
+ * 
+ * **FLUX.2 Optimized**: FLUX.2 can generate images with specific color
+ * harmonies and tonal characteristics when guided by color palette prompts.
+ * 
+ * Color palettes affect the emotional impact and visual coherence of images.
+ * Works synergistically with mood and lighting templates.
+ * 
+ * ## Subcategories
+ * - **Warm Palettes**: Golden, amber, sunset, terracotta, autumn
+ * - **Cool Palettes**: Blue, teal, ice, silver, winter
+ * - **Vibrant**: Bold, neon, saturated, tropical, rainbow
+ * - **Muted/Pastel**: Soft, dusty, faded, pastel, earth tones
+ * - **Monochromatic**: Black & white, sepia, cyanotype, single color
+ * - **Themed**: Forest green, ocean blue, desert sand, urban gray
+ * - **Film-Inspired**: Kodak warm, Fuji cool, cross-processed
+ * 
+ * ## Color Theory Tips
+ * - Complementary colors create tension and vibrancy
+ * - Analogous colors create harmony and calm
+ * - Monochromatic palettes emphasize form over color
+ * - Warm colors advance, cool colors recede
+ * 
+ * ## Combining with Other Templates
+ * ```
+ * Mood: "Nostalgic" + Color: "Warm golden" + Lighting: "Golden hour"
+ * = Cohesive warm, nostalgic atmosphere
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * const palette = colorPaletteTemplates.find(t => t.id === "color-cool-blue");
+ * // promptFragment: "cool blue color palette, blue tones, calming blues"
+ * ```
+ */
 export const colorPaletteTemplates: Template[] = [
   // Warm Palettes
   {
@@ -3207,9 +3634,30 @@ export const colorPaletteTemplates: Template[] = [
 ];
 
 // ==========================================
-// All Templates Export
+// Exports and Utility Functions
 // ==========================================
+
+/**
+ * All templates organized by category
+ * 
+ * Provides access to all template arrays keyed by category name.
+ * The first 8 categories are general-purpose, the last 4 are FLUX.2 optimized.
+ * 
+ * @example
+ * ```typescript
+ * import { allTemplates } from "@/lib/data/templates";
+ * 
+ * // Access all lighting templates
+ * const lightingOptions = allTemplates.lighting;
+ * 
+ * // Iterate all categories
+ * Object.entries(allTemplates).forEach(([category, templates]) => {
+ *   console.log(`${category}: ${templates.length} templates`);
+ * });
+ * ```
+ */
 export const allTemplates = {
+  // General Categories (work with all workflows)
   lighting: lightingTemplates,
   camera: cameraTemplates,
   style: styleTemplates,
@@ -3218,24 +3666,60 @@ export const allTemplates = {
   action: actionTemplates,
   clothing: clothingTemplates,
   expression: expressionTemplates,
-  // FLUX.2 Specific Categories
+  // FLUX.2 Optimized Categories (leverage FLUX.2's photography understanding)
   mood: moodTemplates,
   cameraModel: cameraModelTemplates,
   lens: lensTemplates,
   colorPalette: colorPaletteTemplates,
 };
 
+/**
+ * Union type of all valid template category names
+ * 
+ * @example
+ * ```typescript
+ * function selectCategory(category: TemplateCategory) {
+ *   return allTemplates[category];
+ * }
+ * ```
+ */
 export type TemplateCategory = keyof typeof allTemplates;
 
 /**
- * Get templates by category
+ * Get all templates for a specific category
+ * 
+ * Type-safe accessor for template arrays by category name.
+ * 
+ * @param category - The category name to retrieve
+ * @returns Array of templates for the specified category
+ * 
+ * @example
+ * ```typescript
+ * const lightingOptions = getTemplatesByCategory("lighting");
+ * // Returns: Template[] with 38 lighting templates
+ * ```
  */
 export function getTemplatesByCategory(category: TemplateCategory): Template[] {
   return allTemplates[category];
 }
 
 /**
- * Get a template by ID from any category
+ * Find a specific template by its unique ID across all categories
+ * 
+ * Searches through all template categories to find a template matching
+ * the provided ID. Returns undefined if no match is found.
+ * 
+ * @param id - The unique template ID (e.g., "lighting-golden-hour")
+ * @returns The matching Template object, or undefined if not found
+ * 
+ * @example
+ * ```typescript
+ * const template = getTemplateById("style-film-noir");
+ * if (template) {
+ *   console.log(template.promptFragment);
+ *   // "film noir style, black and white, high contrast, dramatic shadows"
+ * }
+ * ```
  */
 export function getTemplateById(id: string): Template | undefined {
   for (const templates of Object.values(allTemplates)) {

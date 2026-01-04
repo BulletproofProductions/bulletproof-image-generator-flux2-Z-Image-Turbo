@@ -1,3 +1,47 @@
+/**
+ * @fileoverview Subject Manager Component
+ * 
+ * Manages the list of subjects in a prompt. Subjects represent people,
+ * characters, or objects that appear in the generated image.
+ * 
+ * ## Responsibilities
+ * 
+ * - Display list of subject cards
+ * - Add new subjects
+ * - Remove existing subjects
+ * - Open avatar selector modal for linking
+ * - Pass updates to subject configurations
+ * 
+ * ## Subject Workflow
+ * 
+ * ```
+ * 1. User clicks "Add Subject"
+ * 2. New SubjectConfig created with empty values
+ * 3. User clicks avatar area on SubjectCard
+ * 4. AvatarSelectorModal opens (managed here)
+ * 5. User selects avatar
+ * 6. Avatar linked to subject via onLinkAvatar callback
+ * ```
+ * 
+ * ## Empty State
+ * 
+ * When no subjects exist, displays a dashed border box with
+ * instructions and an "Add Your First Subject" button.
+ * 
+ * @example
+ * ```tsx
+ * <SubjectManager
+ *   subjects={subjects}
+ *   onAdd={handleAddSubject}
+ *   onRemove={handleRemoveSubject}
+ *   onUpdate={handleUpdateSubject}
+ *   onLinkAvatar={handleLinkAvatar}
+ * />
+ * ```
+ * 
+ * @module components/generate/prompt-builder/subject-manager
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -8,14 +52,31 @@ import { useAvatars } from "@/hooks/use-avatars";
 import type { SubjectConfig, Avatar } from "@/lib/types/generation";
 import { SubjectCard } from "./subject-card";
 
+/**
+ * Props for the SubjectManager component
+ */
 interface SubjectManagerProps {
+  /** Array of subject configurations */
   subjects: SubjectConfig[];
+  /** Callback to add a new subject */
   onAdd: () => void;
+  /** Callback to remove a subject by ID */
   onRemove: (id: string) => void;
+  /** Callback to update subject properties */
   onUpdate: (id: string, updates: Partial<SubjectConfig>) => void;
+  /** Callback to link/unlink an avatar to a subject */
   onLinkAvatar: (subjectId: string, avatar: Avatar | null) => void;
 }
 
+/**
+ * Subject list manager with avatar selection
+ * 
+ * Coordinates the list of subjects and the avatar selector modal.
+ * Each subject is rendered as a SubjectCard with its own edit controls.
+ * 
+ * @param props - Component props
+ * @returns Subject list with management controls
+ */
 export function SubjectManager({
   subjects,
   onAdd,

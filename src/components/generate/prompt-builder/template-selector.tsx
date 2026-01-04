@@ -1,3 +1,38 @@
+/**
+ * @fileoverview Template Selector Component
+ * 
+ * A dropdown-style selector for choosing prompt templates from a category.
+ * Displays a button that opens a modal with searchable template options.
+ * 
+ * ## Features
+ * 
+ * - Opens a full modal with template grid
+ * - Shows selected template name or custom value
+ * - Clear button to reset selection
+ * - Supports both predefined templates and custom text input
+ * 
+ * ## Display Logic
+ * 
+ * | Condition | Display |
+ * |-----------|--------|
+ * | Template selected | Template name |
+ * | Custom value | Custom value text + "Custom:" label |
+ * | Nothing selected | Placeholder text |
+ * 
+ * @example
+ * ```tsx
+ * <TemplateSelector
+ *   label="Style"
+ *   templates={styleTemplates}
+ *   value={selectedStyle}
+ *   onChange={setSelectedStyle}
+ *   placeholder="Select a style..."
+ * />
+ * ```
+ * 
+ * @module components/generate/prompt-builder/template-selector
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -7,15 +42,34 @@ import { Label } from "@/components/ui/label";
 import type { Template } from "@/lib/types/generation";
 import { TemplateSelectorModal } from "./template-selector-modal";
 
+/**
+ * Props for the TemplateSelector component
+ */
 interface TemplateSelectorProps {
+  /** Label displayed above the selector */
   label: string;
+  /** Array of templates to choose from */
   templates: Template[];
+  /** Current value (template ID or custom text) */
   value: string;
+  /** Callback when value changes */
   onChange: (value: string) => void;
+  /** Placeholder text when nothing selected */
   placeholder?: string;
+  /** Whether to allow custom text input (default: true) */
   allowCustom?: boolean;
 }
 
+/**
+ * Template selector with modal picker
+ * 
+ * Renders a button that shows the current selection and opens
+ * a modal when clicked. The modal displays a searchable grid
+ * of templates with optional custom input.
+ * 
+ * @param props - Component props
+ * @returns Template selector button with modal
+ */
 export function TemplateSelector({
   label,
   templates,

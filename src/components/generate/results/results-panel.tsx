@@ -1,3 +1,48 @@
+/**
+ * @fileoverview Results Panel Component - Generated Images Display
+ * 
+ * The Results Panel is the right column of the generation interface,
+ * displaying generated images with viewing and interaction capabilities.
+ * 
+ * ## Display Modes
+ * 
+ * | Workflow | Display Mode | Features |
+ * |----------|--------------|----------|
+ * | All except Upscaler | 2-column grid | Fullscreen, Download, Refine |
+ * | Bulletproof Upscaler | Comparison slider | Original vs Upscaled view |
+ * 
+ * ## States
+ * 
+ * - **Empty**: Shows placeholder with image icon
+ * - **Generating**: Shows skeleton placeholders
+ * - **Has Images**: Shows image grid or comparison slider
+ * - **Refining**: Shows disabled refine input
+ * 
+ * ## Fullscreen Modal
+ * 
+ * Clicking an image opens a fullscreen modal with:
+ * - Large image view
+ * - Download button
+ * - Open in new tab button
+ * - Navigation between images
+ * 
+ * @example
+ * ```tsx
+ * <ResultsPanel
+ *   images={generatedImageUrls}
+ *   isGenerating={isGenerating}
+ *   expectedCount={settings.imageCount}
+ *   generationId={generation?.id}
+ *   onRefine={handleRefine}
+ *   isRefining={isRefining}
+ *   workflow={settings.workflow}
+ *   originalImageUrl={originalUrl} // For upscaler comparison
+ * />
+ * ```
+ * 
+ * @module components/generate/results/results-panel
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -16,17 +61,38 @@ import { RefineInput } from "./refine-input";
 import { ImageComparisonSlider } from "./image-comparison-slider";
 import type { WorkflowType } from "@/lib/types/generation";
 
+/**
+ * Props for the ResultsPanel component
+ */
 interface ResultsPanelProps {
+  /** Array of generated image URLs to display */
   images: string[];
+  /** Whether generation is currently in progress */
   isGenerating: boolean;
+  /** Expected number of images (for skeleton display) */
   expectedCount: number;
+  /** Parent generation ID (required for refinement) */
   generationId?: string | undefined;
+  /** Callback for image refinement */
   onRefine?: ((instruction: string, selectedImageId?: string) => Promise<void>) | undefined;
+  /** Whether refinement is in progress */
   isRefining?: boolean | undefined;
+  /** Current workflow type (affects display mode) */
   workflow?: WorkflowType | undefined;
+  /** Original image URL for upscaler comparison view */
   originalImageUrl?: string | undefined;
 }
 
+/**
+ * Results panel with image grid and interaction controls
+ * 
+ * Displays generated images in a 2-column grid (or comparison slider for
+ * upscaler workflow). Provides fullscreen viewing, download, and refinement
+ * capabilities.
+ * 
+ * @param props - Component props
+ * @returns Results panel with images or loading state
+ */
 export function ResultsPanel({
   images,
   isGenerating,
