@@ -97,10 +97,10 @@ export async function POST(request: Request) {
 
     // Validate workflow type
     const workflow = settings.workflow || "flux2";
-    const validWorkflows: WorkflowType[] = ["flux2", "z-image-turbo", "bulletproof-background"];
+    const validWorkflows: WorkflowType[] = ["flux2", "z-image-turbo", "bulletproof-background", "bulletproof-upscaler"];
     if (!validWorkflows.includes(workflow)) {
       return NextResponse.json(
-        { error: "Invalid workflow. Must be 'flux2', 'z-image-turbo', or 'bulletproof-background'" },
+        { error: "Invalid workflow. Must be 'flux2', 'z-image-turbo', 'bulletproof-background', or 'bulletproof-upscaler'" },
         { status: 400 }
       );
     }
@@ -151,6 +151,25 @@ export async function POST(request: Request) {
         { error: "Input image required for Bulletproof Background" },
         { status: 400 }
       );
+    }
+
+    // Validate Bulletproof Upscaler requires an input image
+    if (workflow === "bulletproof-upscaler" && referenceImages.length === 0) {
+      return NextResponse.json(
+        { error: "Input image required for Bulletproof Upscaler" },
+        { status: 400 }
+      );
+    }
+
+    // Validate Bulletproof Upscaler VRAM preset
+    if (workflow === "bulletproof-upscaler" && settings.vramPreset) {
+      const validVramPresets = ["low", "standard", "high"];
+      if (!validVramPresets.includes(settings.vramPreset)) {
+        return NextResponse.json(
+          { error: "Invalid VRAM preset. Must be 'low', 'standard', or 'high'" },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if ComfyUI is available
@@ -274,6 +293,41 @@ export async function POST(request: Request) {
                 detectionConfidence: settings.detectionConfidence ?? 0.2,
                 subjectToDetect: settings.subjectToDetect ?? "person",
               });
+            } else if (workflow === "bulletproof-upscaler") {
+              // Bulletproof Upscaler requires input image - use reference image
+              if (!referenceImageFilename) {
+                throw new Error("Input image required for Bulletproof Upscaler workflow");
+              }
+              // Map resolution setting to actual resolution values
+              // resolution = target shortest edge, maxResolution = limit for any dimension
+              const resolutionMap: Record<string, number> = {
+                "1K": 1080,
+                "2K": 2160,
+                "4K": 4320,
+              };
+              const maxResolutionMap: Record<string, number> = {
+                "1K": 2048,
+                "2K": 4096,
+                "4K": 8192,
+              };
+              const resolution = resolutionMap[settings.resolution] || 2160;
+              const maxResolution = maxResolutionMap[settings.resolution] || 4096;
+              
+              comfyWorkflow = comfyui.buildBulletproofUpscalerWorkflow({
+                inputImageFilename: referenceImageFilename,
+                resolution,
+                maxResolution,
+                vramPreset: settings.vramPreset ?? "standard",
+              });
+              
+              // Store originalImageUrl in settings for comparison view
+              if (avatarDetails.length > 0 && avatarDetails[0]) {
+                settings.originalImageUrl = avatarDetails[0].imageUrl;
+                // Update the generation record with the originalImageUrl
+                await db.update(generations)
+                  .set({ settings: { ...settings, originalImageUrl: avatarDetails[0].imageUrl } })
+                  .where(eq(generations.id, generation.id));
+              }
             } else {
               // Default: Flux 2 workflow
               comfyWorkflow = comfyui.buildFlux2Workflow({
@@ -320,8 +374,10 @@ export async function POST(request: Request) {
               const timestamp = Date.now();
               const filename = `gen-${generation.id}-${i}-${timestamp}.png`;
 
-              // Upload to storage
-              const uploadResult = await upload(imageBuffer, filename, "generations");
+              // Upload to storage with higher size limit for generated/upscaled images (50MB)
+              const uploadResult = await upload(imageBuffer, filename, "generations", {
+                maxSize: 50 * 1024 * 1024, // 50MB to accommodate large upscaled images
+              });
 
               // Save to database
               const [savedImage] = await db

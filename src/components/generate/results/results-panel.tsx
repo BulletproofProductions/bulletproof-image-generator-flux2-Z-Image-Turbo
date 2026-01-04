@@ -13,6 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefineInput } from "./refine-input";
+import { ImageComparisonSlider } from "./image-comparison-slider";
+import type { WorkflowType } from "@/lib/types/generation";
 
 interface ResultsPanelProps {
   images: string[];
@@ -21,6 +23,8 @@ interface ResultsPanelProps {
   generationId?: string | undefined;
   onRefine?: ((instruction: string, selectedImageId?: string) => Promise<void>) | undefined;
   isRefining?: boolean | undefined;
+  workflow?: WorkflowType | undefined;
+  originalImageUrl?: string | undefined;
 }
 
 export function ResultsPanel({
@@ -30,10 +34,13 @@ export function ResultsPanel({
   generationId,
   onRefine,
   isRefining = false,
+  workflow,
+  originalImageUrl,
 }: ResultsPanelProps) {
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
   const hasImages = images.length > 0;
   const fullscreenImage = fullscreenIndex !== null ? images[fullscreenIndex] : null;
+  const isBulletproofUpscaler = workflow === "bulletproof-upscaler";
 
   const handleRefine = async (instruction: string) => {
     if (onRefine) {
@@ -41,14 +48,14 @@ export function ResultsPanel({
     }
   };
 
-  const handleDownload = async (url: string, index: number) => {
+  const handleDownload = async (url: string, index: number, isUpscaled = false) => {
     try {
       const response = await fetch(url);
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `generated-image-${index + 1}.png`;
+      link.download = isUpscaled ? `upscaled-image-${index + 1}.png` : `generated-image-${index + 1}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -81,49 +88,63 @@ export function ResultsPanel({
             </div>
           ) : (
             <>
-              {/* Image Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                {isGenerating ? (
-                  // Show skeletons while generating
-                  Array.from({ length: expectedCount }).map((_, i) => (
-                    <div key={i} className="aspect-square">
-                      <Skeleton className="w-full h-full rounded-lg" />
-                    </div>
-                  ))
-                ) : (
-                  // Show generated images
-                  images.map((url, i) => (
-                    <div
-                      key={i}
-                      className="aspect-square rounded-lg overflow-hidden border bg-muted relative cursor-pointer transition-all group hover:ring-2 hover:ring-primary"
-                      onClick={() => setFullscreenIndex(i)}
-                    >
-                      <Image
-                        src={url}
-                        alt={`Generated image ${i + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 50vw, 200px"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                        <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
-                          Click to view
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Refinement Section */}
-              {hasImages && generationId && onRefine && (
-                <>
-                  <Separator />
-                  <RefineInput
-                    onRefine={handleRefine}
-                    isRefining={isRefining}
-                    disabled={isGenerating}
+              {/* Upscaler Comparison View */}
+              {isBulletproofUpscaler && hasImages && originalImageUrl && images[0] ? (
+                <div className="space-y-4">
+                  <ImageComparisonSlider
+                    originalImageUrl={originalImageUrl}
+                    upscaledImageUrl={images[0]}
+                    onDownload={(url) => handleDownload(url, 0, true)}
+                    initialPosition={50}
                   />
+                </div>
+              ) : (
+                <>
+                  {/* Standard Image Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {isGenerating ? (
+                      // Show skeletons while generating
+                      Array.from({ length: expectedCount }).map((_, i) => (
+                        <div key={i} className="aspect-square">
+                          <Skeleton className="w-full h-full rounded-lg" />
+                        </div>
+                      ))
+                    ) : (
+                      // Show generated images
+                      images.map((url, i) => (
+                        <div
+                          key={i}
+                          className="aspect-square rounded-lg overflow-hidden border bg-muted relative cursor-pointer transition-all group hover:ring-2 hover:ring-primary"
+                          onClick={() => setFullscreenIndex(i)}
+                        >
+                          <Image
+                            src={url}
+                            alt={`Generated image ${i + 1}`}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 50vw, 200px"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                              Click to view
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Refinement Section */}
+                  {hasImages && generationId && onRefine && (
+                    <>
+                      <Separator />
+                      <RefineInput
+                        onRefine={handleRefine}
+                        isRefining={isRefining}
+                        disabled={isGenerating}
+                      />
+                    </>
+                  )}
                 </>
               )}
             </>
@@ -153,7 +174,7 @@ export function ResultsPanel({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => handleDownload(fullscreenImage, fullscreenIndex)}
+                  onClick={() => handleDownload(fullscreenImage, fullscreenIndex, isBulletproofUpscaler)}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download

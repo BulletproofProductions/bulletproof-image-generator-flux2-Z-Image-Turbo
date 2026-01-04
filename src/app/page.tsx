@@ -62,7 +62,10 @@ export default function HomePage() {
 
   // Handle generation
   const handleGenerate = async () => {
-    if (!assembledPrompt) {
+    const isBulletproofUpscaler = settings.workflow === "bulletproof-upscaler";
+    
+    // For upscaler, we use "UPSCALE" as the prompt; otherwise require assembled prompt
+    if (!isBulletproofUpscaler && !assembledPrompt) {
       toast.error("Please build a prompt before generating");
       return;
     }
@@ -82,7 +85,7 @@ export default function HomePage() {
     }
 
     const generateInput = {
-      prompt: assembledPrompt,
+      prompt: isBulletproofUpscaler ? "UPSCALE" : assembledPrompt,
       settings,
       referenceImages,
     };
@@ -190,6 +193,7 @@ export default function HomePage() {
       <ThreeColumnLayout
         leftPanel={
           <PromptBuilderPanel
+            workflow={settings.workflow}
             location={state.location}
             lighting={state.lighting}
             camera={state.camera}
@@ -246,6 +250,8 @@ export default function HomePage() {
             generationId={currentGeneration?.id}
             onRefine={handleRefine}
             isRefining={isRefining}
+            workflow={settings.workflow}
+            originalImageUrl={currentGeneration?.settings?.originalImageUrl}
           />
         }
       />

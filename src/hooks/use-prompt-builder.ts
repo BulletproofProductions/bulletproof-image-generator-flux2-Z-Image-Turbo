@@ -56,6 +56,8 @@ const defaultSettings: GenerationSettings = {
   denoise: undefined, // Only used for Z Image Turbo
   largestSize: undefined, // Only used for Z Image Turbo
   shift: undefined, // Only used for Z Image Turbo
+  vramPreset: undefined, // Only used for Bulletproof Upscaler
+  originalImageUrl: undefined, // Only used for Bulletproof Upscaler comparison view
 };
 
 const defaultState: PromptBuilderState = {
@@ -127,6 +129,9 @@ export function usePromptBuilder(): UsePromptBuilderReturn {
           // Clear Bulletproof Background specific settings
           detectionConfidence: undefined,
           subjectToDetect: undefined,
+          // Clear Bulletproof Upscaler specific settings
+          vramPreset: undefined,
+          originalImageUrl: undefined,
         };
       } else if (workflow === "bulletproof-background") {
         // Bulletproof Background defaults
@@ -141,6 +146,26 @@ export function usePromptBuilder(): UsePromptBuilderReturn {
           subjectToDetect: "person",
           // Clear Z Image Turbo specific settings
           largestSize: undefined,
+          // Clear Bulletproof Upscaler specific settings
+          vramPreset: undefined,
+          originalImageUrl: undefined,
+        };
+      } else if (workflow === "bulletproof-upscaler") {
+        // Bulletproof Upscaler defaults - 2K resolution, standard VRAM
+        return {
+          ...prev,
+          workflow,
+          resolution: "2K", // Default to 2K for upscaler
+          vramPreset: "standard",
+          // Clear all other workflow-specific settings (upscaler doesn't use them)
+          steps: undefined,
+          guidance: undefined,
+          denoise: undefined,
+          largestSize: undefined,
+          shift: undefined,
+          detectionConfidence: undefined,
+          subjectToDetect: undefined,
+          originalImageUrl: undefined,
         };
       } else {
         // Flux 2 defaults
@@ -155,6 +180,9 @@ export function usePromptBuilder(): UsePromptBuilderReturn {
           // Clear Bulletproof Background specific settings
           detectionConfidence: undefined,
           subjectToDetect: undefined,
+          // Clear Bulletproof Upscaler specific settings
+          vramPreset: undefined,
+          originalImageUrl: undefined,
         };
       }
     });

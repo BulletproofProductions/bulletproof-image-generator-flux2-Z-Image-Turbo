@@ -32,7 +32,8 @@ export interface UpdateAvatarInput {
 export type ImageResolution = "1K" | "2K" | "4K";
 export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9";
 export type GenerationStatus = "pending" | "processing" | "completed" | "failed";
-export type WorkflowType = "flux2" | "z-image-turbo" | "bulletproof-background";
+export type WorkflowType = "flux2" | "z-image-turbo" | "bulletproof-background" | "bulletproof-upscaler";
+export type VRAMPreset = "low" | "standard" | "high";
 
 export interface GenerationSettings {
   resolution: ImageResolution;
@@ -48,6 +49,9 @@ export interface GenerationSettings {
   // Bulletproof Background specific settings
   detectionConfidence?: number | undefined; // 0.1-1.0, default 0.2 (Bulletproof Background only)
   subjectToDetect?: string | undefined; // Text prompt for SAM3 segmentation, default "person" (Bulletproof Background only)
+  // Bulletproof Upscaler specific settings
+  vramPreset?: VRAMPreset | undefined; // low/standard/high, default "standard" (Bulletproof Upscaler only)
+  originalImageUrl?: string | undefined; // URL of the original image before upscaling (for comparison view)
 }
 
 export interface Generation {

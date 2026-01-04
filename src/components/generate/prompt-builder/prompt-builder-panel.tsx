@@ -14,11 +14,13 @@ import {
   lensTemplates,
   colorPaletteTemplates,
 } from "@/lib/data/templates";
-import type { SubjectConfig, Avatar } from "@/lib/types/generation";
+import type { SubjectConfig, Avatar, WorkflowType } from "@/lib/types/generation";
 import { SubjectManager } from "./subject-manager";
 import { TemplateSelector } from "./template-selector";
 
 interface PromptBuilderPanelProps {
+  // Workflow type
+  workflow?: WorkflowType | undefined;
   // Scene settings
   location: string;
   lighting: string;
@@ -52,6 +54,7 @@ interface PromptBuilderPanelProps {
 }
 
 export function PromptBuilderPanel({
+  workflow,
   location,
   lighting,
   camera,
@@ -76,18 +79,23 @@ export function PromptBuilderPanel({
   onUpdateSubject,
   onLinkAvatarToSubject,
 }: PromptBuilderPanelProps) {
+  const isBulletproofUpscaler = workflow === "bulletproof-upscaler";
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b">
         <h2 className="font-semibold text-lg">Prompt Builder</h2>
         <p className="text-sm text-muted-foreground">
-          Build your image prompt step by step
+          {isBulletproofUpscaler
+            ? "Select an image to upscale using Subjects below"
+            : "Build your image prompt step by step"}
         </p>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-6">
-          {/* Scene Settings */}
+          {/* Scene Settings - Hidden for upscaler */}
+          {!isBulletproofUpscaler && (
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
               Scene Settings
@@ -129,10 +137,12 @@ export function PromptBuilderPanel({
               placeholder="Select or type camera angle..."
             />
           </div>
+          )}
 
-          <Separator />
+          {!isBulletproofUpscaler && <Separator />}
 
-          {/* FLUX.2 Photography Settings */}
+          {/* FLUX.2 Photography Settings - Hidden for upscaler */}
+          {!isBulletproofUpscaler && (
           <div className="space-y-4">
             <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
               Photography Settings
@@ -174,8 +184,9 @@ export function PromptBuilderPanel({
               placeholder="Select or type color palette..."
             />
           </div>
+          )}
 
-          <Separator />
+          {!isBulletproofUpscaler && <Separator />}
 
           {/* Subjects */}
           <SubjectManager
@@ -186,9 +197,10 @@ export function PromptBuilderPanel({
             onLinkAvatar={onLinkAvatarToSubject}
           />
 
-          <Separator />
+          {!isBulletproofUpscaler && <Separator />}
 
-          {/* Custom Prompt */}
+          {/* Custom Prompt - Hidden for upscaler */}
+          {!isBulletproofUpscaler && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               Additional Instructions (optional)
@@ -203,6 +215,7 @@ export function PromptBuilderPanel({
               This will be appended to the generated prompt
             </p>
           </div>
+          )}
         </div>
       </ScrollArea>
     </div>

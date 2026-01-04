@@ -73,10 +73,11 @@ export function PreviewPanel({
   const workflow = settings.workflow || "flux2";
   const isZImageTurbo = workflow === "z-image-turbo";
   const isBulletproofBackground = workflow === "bulletproof-background";
-  const requiresInputImage = isZImageTurbo || isBulletproofBackground;
+  const isBulletproofUpscaler = workflow === "bulletproof-upscaler";
+  const requiresInputImage = isZImageTurbo || isBulletproofBackground || isBulletproofUpscaler;
   
   // Disable generate button when workflow requires input image but none provided
-  const isGenerateDisabled = isGenerating || !assembledPrompt || (requiresInputImage && !hasReferenceImage);
+  const isGenerateDisabled = isGenerating || (!isBulletproofUpscaler && !assembledPrompt) || (requiresInputImage && !hasReferenceImage);
   
   const handleRandomizeSeed = () => {
     onSettingsChange({ seed: Math.floor(Math.random() * Number.MAX_SAFE_INTEGER) });
@@ -125,8 +126,10 @@ export function PreviewPanel({
           {/* Prompt Preview */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Generated Prompt</Label>
-            <div className="p-4 bg-muted/50 rounded-lg min-h-[100px]">
-              {assembledPrompt ? (
+            <div className={`p-4 bg-muted/50 rounded-lg min-h-[100px] ${isBulletproofUpscaler ? 'opacity-60' : ''}`}>
+              {isBulletproofUpscaler ? (
+                <p className="text-sm font-medium text-muted-foreground">UPSCALE</p>
+              ) : assembledPrompt ? (
                 <p className="text-sm whitespace-pre-wrap">{assembledPrompt}</p>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
@@ -158,6 +161,7 @@ export function PreviewPanel({
                   <SelectItem value="flux2">Flux 2 (Text-to-Image)</SelectItem>
                   <SelectItem value="z-image-turbo">Z Image Turbo (Image-to-Image)</SelectItem>
                   <SelectItem value="bulletproof-background">Bulletproof Background (Inpainting)</SelectItem>
+                  <SelectItem value="bulletproof-upscaler">Bulletproof Upscaler (4X)</SelectItem>
                 </SelectContent>
               </Select>
               {isZImageTurbo && !hasReferenceImage && (
@@ -170,29 +174,38 @@ export function PreviewPanel({
                   ⚠️ Input image required for Bulletproof Background
                 </p>
               )}
+              {isBulletproofUpscaler && !hasReferenceImage && (
+                <p className="text-xs text-destructive">
+                  ⚠️ Input image required for Bulletproof Upscaler
+                </p>
+              )}
             </div>
 
-            {/* Number of Images */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Number of Images</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {([1, 2, 3, 4] as const).map((num) => (
-                  <Button
-                    key={num}
-                    variant={settings.imageCount === num ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onSettingsChange({ imageCount: num })}
-                  >
-                    {num}
-                  </Button>
-                ))}
+            {/* Number of Images - Not for upscaler (only upscales 1 at a time) */}
+            {!isBulletproofUpscaler && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Number of Images</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {([1, 2, 3, 4] as const).map((num) => (
+                    <Button
+                      key={num}
+                      variant={settings.imageCount === num ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onSettingsChange({ imageCount: num })}
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Resolution - Only for Flux 2 */}
+            {/* Resolution - For Flux 2 and Bulletproof Upscaler (max output size) */}
             {!isZImageTurbo && !isBulletproofBackground && (
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Resolution</Label>
+                <Label className="text-sm font-medium">
+                  {isBulletproofUpscaler ? "Max Output Size" : "Resolution"}
+                </Label>
                 <Select
                   value={settings.resolution}
                   onValueChange={(value) =>
@@ -208,11 +221,41 @@ export function PreviewPanel({
                     <SelectItem value="4K">4K (4096px)</SelectItem>
                   </SelectContent>
                 </Select>
+                {isBulletproofUpscaler && (
+                  <p className="text-xs text-muted-foreground">
+                    Output is input × 4, capped at this size
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* VRAM Preset - Only for Bulletproof Upscaler */}
+            {isBulletproofUpscaler && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">VRAM Preset</Label>
+                <Select
+                  value={settings.vramPreset || "standard"}
+                  onValueChange={(value) =>
+                    onSettingsChange({ vramPreset: value as "low" | "standard" | "high" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select VRAM preset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low VRAM (8GB)</SelectItem>
+                    <SelectItem value="standard">Standard (12-16GB)</SelectItem>
+                    <SelectItem value="high">High VRAM (24GB+)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Lower = less VRAM usage, slower processing
+                </p>
               </div>
             )}
 
             {/* Aspect Ratio - Only for Flux 2 */}
-            {!isZImageTurbo && !isBulletproofBackground && (
+            {!isZImageTurbo && !isBulletproofBackground && !isBulletproofUpscaler && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Aspect Ratio</Label>
                 <Select
@@ -238,145 +281,150 @@ export function PreviewPanel({
 
             <Separator />
 
-            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-              AI Image Generation Settings
-            </h3>
+            {/* AI Image Generation Settings - Not shown for Bulletproof Upscaler */}
+            {!isBulletproofUpscaler && (
+              <>
+                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  AI Image Generation Settings
+                </h3>
 
-            {/* Steps */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label className="text-sm font-medium">Steps</Label>
-                <span className="text-sm text-muted-foreground">
-                  {settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)}
-                </span>
-              </div>
-              <Slider
-                value={[settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)]}
-                onValueChange={(value) => onSettingsChange({ steps: value[0] })}
-                min={1}
-                max={isZImageTurbo || isBulletproofBackground ? 20 : 50}
-                step={1}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">
-                More steps = better quality but slower
-              </p>
-            </div>
-
-            {/* Guidance/CFG */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <Label className="text-sm font-medium">
-                  {isZImageTurbo || isBulletproofBackground ? "CFG" : "Guidance"}
-                </Label>
-                <span className="text-sm text-muted-foreground">
-                  {settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)}
-                </span>
-              </div>
-              <Slider
-                value={[settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)]}
-                onValueChange={(value) => onSettingsChange({ guidance: value[0] })}
-                min={1}
-                max={isZImageTurbo || isBulletproofBackground ? 5 : 10}
-                step={0.5}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground">
-                Higher = follows prompt more closely
-              </p>
-            </div>
-
-            {/* Denoise - For Z Image Turbo and Bulletproof Background */}
-            {(isZImageTurbo || isBulletproofBackground) && (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label className="text-sm font-medium">Denoise Strength</Label>
-                  <span className="text-sm text-muted-foreground">
-                    {settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)}
-                  </span>
+                {/* Steps */}
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label className="text-sm font-medium">Steps</Label>
+                    <span className="text-sm text-muted-foreground">
+                      {settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[settings.steps || (isZImageTurbo || isBulletproofBackground ? 9 : 20)]}
+                    onValueChange={(value) => onSettingsChange({ steps: value[0] })}
+                    min={1}
+                    max={isZImageTurbo || isBulletproofBackground ? 20 : 50}
+                    step={1}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    More steps = better quality but slower
+                  </p>
                 </div>
-                <Slider
-                  value={[settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)]}
-                  onValueChange={(value) => onSettingsChange({ denoise: value[0] })}
-                  min={0.1}
-                  max={1.0}
-                  step={0.05}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  {isBulletproofBackground 
-                    ? "Higher = more background transformation" 
-                    : "Higher = more transformation from original"}
-                </p>
-              </div>
-            )}
 
-            {/* Detection Confidence - Only for Bulletproof Background */}
-            {isBulletproofBackground && (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label className="text-sm font-medium">Detection Confidence</Label>
-                  <span className="text-sm text-muted-foreground">
-                    {settings.detectionConfidence ?? 0.2}
-                  </span>
+                {/* Guidance/CFG */}
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <Label className="text-sm font-medium">
+                      {isZImageTurbo || isBulletproofBackground ? "CFG" : "Guidance"}
+                    </Label>
+                    <span className="text-sm text-muted-foreground">
+                      {settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[settings.guidance || (isZImageTurbo || isBulletproofBackground ? 1 : 4)]}
+                    onValueChange={(value) => onSettingsChange({ guidance: value[0] })}
+                    min={1}
+                    max={isZImageTurbo || isBulletproofBackground ? 5 : 10}
+                    step={0.5}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Higher = follows prompt more closely
+                  </p>
                 </div>
-                <Slider
-                  value={[settings.detectionConfidence ?? 0.2]}
-                  onValueChange={(value) => onSettingsChange({ detectionConfidence: value[0] })}
-                  min={0.1}
-                  max={1.0}
-                  step={0.1}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Lower = detect subjects more easily
-                </p>
-              </div>
-            )}
 
-            {/* Subject to Detect - Only for Bulletproof Background */}
-            {isBulletproofBackground && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Subject to Detect</Label>
-                <Input
-                  type="text"
-                  placeholder="person"
-                  value={settings.subjectToDetect ?? "person"}
-                  onChange={(e) => onSettingsChange({ subjectToDetect: e.target.value })}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  What to preserve (e.g., &quot;person&quot;, &quot;cat&quot;, &quot;car&quot;)
-                </p>
-              </div>
-            )}
+                {/* Denoise - For Z Image Turbo and Bulletproof Background */}
+                {(isZImageTurbo || isBulletproofBackground) && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-sm font-medium">Denoise Strength</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[settings.denoise ?? (isBulletproofBackground ? 0.9 : 0.4)]}
+                      onValueChange={(value) => onSettingsChange({ denoise: value[0] })}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {isBulletproofBackground 
+                        ? "Higher = more background transformation" 
+                        : "Higher = more transformation from original"}
+                    </p>
+                  </div>
+                )}
 
-            {/* Seed */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Seed</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Random"
-                  value={settings.seed ?? ""}
-                  onChange={(e) => handleSeedChange(e.target.value)}
-                  className="flex-1"
-                  min={0}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleRandomizeSeed}
-                  title="Randomize seed"
-                >
-                  <Shuffle className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Same seed = reproducible results
-              </p>
-            </div>
+                {/* Detection Confidence - Only for Bulletproof Background */}
+                {isBulletproofBackground && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label className="text-sm font-medium">Detection Confidence</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.detectionConfidence ?? 0.2}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[settings.detectionConfidence ?? 0.2]}
+                      onValueChange={(value) => onSettingsChange({ detectionConfidence: value[0] })}
+                      min={0.1}
+                      max={1.0}
+                      step={0.1}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Lower = detect subjects more easily
+                    </p>
+                  </div>
+                )}
+
+                {/* Subject to Detect - Only for Bulletproof Background */}
+                {isBulletproofBackground && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Subject to Detect</Label>
+                    <Input
+                      type="text"
+                      placeholder="person"
+                      value={settings.subjectToDetect ?? "person"}
+                      onChange={(e) => onSettingsChange({ subjectToDetect: e.target.value })}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      What to preserve (e.g., &quot;person&quot;, &quot;cat&quot;, &quot;car&quot;)
+                    </p>
+                  </div>
+                )}
+
+                {/* Seed */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Seed</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Random"
+                      value={settings.seed ?? ""}
+                      onChange={(e) => handleSeedChange(e.target.value)}
+                      className="flex-1"
+                      min={0}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRandomizeSeed}
+                      title="Randomize seed"
+                    >
+                      <Shuffle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Same seed = reproducible results
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </ScrollArea>
@@ -396,11 +444,11 @@ export function PreviewPanel({
           onClick={onGenerate}
           disabled={isGenerateDisabled}
           title={requiresInputImage && !hasReferenceImage 
-            ? `Input image required for ${isBulletproofBackground ? "Bulletproof Background" : "Z Image Turbo"}` 
+            ? `Input image required for ${isBulletproofUpscaler ? "Bulletproof Upscaler" : isBulletproofBackground ? "Bulletproof Background" : "Z Image Turbo"}` 
             : undefined}
         >
           <Wand2 className="h-5 w-5 mr-2" />
-          {isGenerating ? "Generating..." : "Generate Images"}
+          {isGenerating ? (isBulletproofUpscaler ? "Upscaling..." : "Generating...") : (isBulletproofUpscaler ? "Upscale Image" : "Generate Images")}
         </Button>
       </div>
     </div>

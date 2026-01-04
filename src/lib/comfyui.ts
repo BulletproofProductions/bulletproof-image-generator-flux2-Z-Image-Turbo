@@ -3,7 +3,7 @@
  * Handles all communication with the ComfyUI server
  */
 
-import type { ImageResolution, AspectRatio } from "@/lib/types/generation";
+import type { ImageResolution, AspectRatio, VRAMPreset } from "@/lib/types/generation";
 
 // ==========================================
 // Types
@@ -76,6 +76,21 @@ export interface BulletproofBackgroundWorkflowOptions {
   outputWidth?: number | undefined; // Output width, default 1024 - Node 78
   outputHeight?: number | undefined; // Output height, default 1024 - Node 78
 }
+
+export interface BulletproofUpscalerWorkflowOptions {
+  inputImageFilename: string; // Required - Node 41 (LoadImage)
+  resolution?: number | undefined; // Target shortest edge resolution, default 1080 - Node 18
+  maxResolution?: number | undefined; // Max resolution limit for any dimension, default 4096 - Node 18
+  vramPreset?: VRAMPreset | undefined; // low/standard/high, default "standard" - maps to tile sizes in Node 15
+  seed?: number | undefined; // Seed for upscaler, default 9527 - Node 18
+}
+
+// VRAM preset to tile size mapping
+export const VRAM_PRESET_MAP: Record<VRAMPreset, number> = {
+  low: 256,
+  standard: 512,
+  high: 1024,
+};
 
 // ==========================================
 // Resolution Mapping
@@ -954,6 +969,91 @@ export class ComfyUIClient {
         },
         class_type: "SaveImage",
         _meta: { title: "Save Image" },
+      },
+    };
+
+    return workflow;
+  }
+
+  /**
+   * Build a Bulletproof Upscaler workflow for 4X image upscaling using SeedVR2
+   * Based on workflow: docs/technical/comfyui/Z-Image-Turbo-Upscale.json
+   */
+  buildBulletproofUpscalerWorkflow(options: BulletproofUpscalerWorkflowOptions): ComfyUIWorkflow {
+    const {
+      inputImageFilename,
+      resolution = 1080,
+      maxResolution = 4096,
+      vramPreset = "standard",
+      seed = 9527,
+    } = options;
+
+    // Map VRAM preset to tile size
+    const tileSize = VRAM_PRESET_MAP[vramPreset];
+
+    const workflow: ComfyUIWorkflow = {
+      // Node 15: SeedVR2LoadVAEModel - Load VAE with tile sizes based on VRAM preset
+      "15": {
+        inputs: {
+          model: "ema_vae_fp16.safetensors",
+          device: "cuda:0",
+          encode_tiled: true,
+          encode_tile_size: tileSize,
+          encode_tile_overlap: 128,
+          decode_tiled: true,
+          decode_tile_size: tileSize,
+          decode_tile_overlap: 128,
+          tile_debug: "false",
+          offload_device: "cpu",
+        },
+        class_type: "SeedVR2LoadVAEModel",
+        _meta: { title: "SeedVR2 Load VAE Model" },
+      },
+      // Node 16: SeedVR2LoadDiTModel - Load DiT model
+      "16": {
+        inputs: {
+          model: "seedvr2_ema_7b_fp16.safetensors",
+          device: "cuda:0",
+          blocks_to_swap: 36,
+          offload_device: "cpu",
+          attention_mode: "sdpa",
+        },
+        class_type: "SeedVR2LoadDiTModel",
+        _meta: { title: "SeedVR2 Load DiT Model" },
+      },
+      // Node 18: SeedVR2VideoUpscaler - Main upscaler
+      "18": {
+        inputs: {
+          seed: seed,
+          resolution: resolution,
+          max_resolution: maxResolution,
+          batch_size: 5,
+          uniform_batch_size: false,
+          color_correction: "lab",
+          offload_device: "cpu",
+          image: ["41", 0],
+          dit: ["16", 0],
+          vae: ["15", 0],
+        },
+        class_type: "SeedVR2VideoUpscaler",
+        _meta: { title: "SeedVR2 Video Upscaler" },
+      },
+      // Node 19: SaveImage - Save upscaled output
+      "19": {
+        inputs: {
+          filename_prefix: "BulletproofUpscaler",
+          images: ["18", 0],
+        },
+        class_type: "SaveImage",
+        _meta: { title: "Save Image" },
+      },
+      // Node 41: LoadImage - Input image (required)
+      "41": {
+        inputs: {
+          image: inputImageFilename,
+        },
+        class_type: "LoadImage",
+        _meta: { title: "Load Image" },
       },
     };
 
