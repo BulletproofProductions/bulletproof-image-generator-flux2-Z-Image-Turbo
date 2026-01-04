@@ -79,7 +79,7 @@ export function GenerationProgress({
 
       {progress.isStalled && (
         <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900 rounded">
-          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-0.5 shrink-0" />
           <p className="text-xs text-yellow-700 dark:text-yellow-200">
             Generation appears stalled. Ensure ComfyUI is running and check server logs.
           </p>
